@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro - Mototaxi Huarmey</title>
+    <!-- Google Fonts: Montserrat for headings, Roboto for body -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Top Header -->
+    <header class="top-header">
+        <div class="header-container">
+            <div class="brand-area">
+                <img src="https://wdirdbryxwtbnprbrkvh.supabase.co/storage/v1/object/public/MotoHy/logo.webp" alt="Logo" class="brand-logo">
+                <div class="brand-text">
+                    <h1>Mototaxi Huarmey</h1>
+                    <p>CONDUCTORES VERIFICADOS EN LÍNEA</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <div class="registration-card">
+            <h2 class="form-title">REGÍSTRATE EN MOTOTAXI HUARMEY</h2>
+
+            <!-- Role Selection Tabs -->
+            <div class="tabs-container">
+                <button class="tab-btn active" data-target="pasajero">
+                    <i class="fa-solid fa-user"></i> Soy pasajero
+                </button>
+                <button class="tab-btn" data-target="mototaxista">
+                    <i class="fa-solid fa-motorcycle"></i> Soy mototaxista
+                </button>
+            </div>
+
+            <!-- Form -->
+            <form id="registration-form" action="#" method="POST">
+                
+                <!-- Common Fields -->
+                <div class="form-group">
+                    <label for="fullName">Nombre Completo</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-id-card input-icon"></i>
+                        <input type="text" id="fullName" name="fullName" placeholder="Ingresa tu nombre completo" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Teléfono de Contacto</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-phone input-icon"></i>
+                        <input type="tel" id="phone" name="phone" placeholder="Ej. 987654321" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="zone">Tu zona / referencia</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-map-marker-alt input-icon"></i>
+                        <select id="zone" name="zone" required>
+                            <option value="" disabled selected>Selecciona una zona</option>
+                            <option value="centro">Centro de Huarmey</option>
+                            <option value="norte">Zona Norte</option>
+                            <option value="sur">Zona Sur</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Mototaxista Specific Fields (Hidden by default) -->
+                <div id="mototaxista-fields" class="hidden">
+                    <div class="form-group">
+                        <label for="startPoint">Punto de partida habitual</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-location-dot input-icon"></i>
+                            <select id="startPoint" name="startPoint">
+                                <option value="" disabled selected>Selecciona un paradero o punto</option>
+                                <option value="plaza">Plaza de Armas</option>
+                                <option value="mercado">Mercado Modelo</option>
+                                <option value="terminal">Terminal Terrestre</option>
+                                <option value="otro">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="plateNumber">Número de placa de la mototaxi</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-hashtag input-icon"></i>
+                            <input type="text" id="plateNumber" name="plateNumber" placeholder="Ej. MTX-1234">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="license">Número de licencia de conducir</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-id-badge input-icon"></i>
+                            <input type="text" id="license" name="license" placeholder="Ej. Q12345678">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="model">Modelo de la mototaxi (Opcional)</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-motorcycle input-icon"></i>
+                            <input type="text" id="model" name="model" placeholder="Ej. Bajaj RE, TVS King">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="submit-btn" class="submit-btn">
+                    <i class="fa-solid fa-user-plus btn-icon"></i>
+                    <span id="submit-text">Crear mi cuenta</span>
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
