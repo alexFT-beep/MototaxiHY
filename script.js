@@ -101,11 +101,26 @@ document.addEventListener('DOMContentLoaded', () => {
     password.addEventListener('change', validatePassword);
     confirmPassword.addEventListener('keyup', validatePassword);
 
-    // Redirect to Dashboard on Form Submit
+    // Redirect to Dashboard on Form Submit and Save Data
     const registrationForm = document.getElementById('registration-form');
     if(registrationForm) {
         registrationForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            // Get user data
+            const fullName = document.getElementById('fullName').value.trim();
+            const zoneSelect = document.getElementById('zone');
+            
+            // Validate that we have data
+            if (fullName && zoneSelect.selectedIndex > 0) {
+                const zoneText = zoneSelect.options[zoneSelect.selectedIndex].text;
+                const firstName = fullName.split(' ')[0]; // Get the first name
+                
+                // Save to local storage
+                localStorage.setItem('mototaxi_userName', firstName);
+                localStorage.setItem('mototaxi_userZone', zoneText);
+            }
+            
             window.location.href = 'dashboard-pasajero.html';
         });
     }
@@ -114,7 +129,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if(loginForm) {
         loginForm.addEventListener('submit', function(e) {
             e.preventDefault();
+            // Optional: simulate login logic here if needed
             window.location.href = 'dashboard-pasajero.html';
         });
+    }
+    
+    // Dashboard data population
+    const greetingName = document.querySelector('#user-greeting span');
+    const greetingZone = document.querySelector('#user-zone span');
+    
+    if (greetingName && greetingZone) {
+        const storedName = localStorage.getItem('mototaxi_userName');
+        const storedZone = localStorage.getItem('mototaxi_userZone');
+        
+        if (storedName) {
+            greetingName.textContent = storedName;
+        }
+        if (storedZone) {
+            greetingZone.textContent = storedZone;
+        }
     }
 });
