@@ -47,4 +47,42 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Password visibility toggle
+    const togglePasswordIcons = document.querySelectorAll('.toggle-password');
+    togglePasswordIcons.forEach(icon => {
+        icon.addEventListener('click', function() {
+            const input = this.parentElement.querySelector('input');
+            if (input.type === 'password') {
+                input.type = 'text';
+                this.classList.remove('fa-eye');
+                this.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                this.classList.remove('fa-eye-slash');
+                this.classList.add('fa-eye');
+            }
+        });
+    });
+
+    // Toggle logic for Login / Register
+    const showLoginBtn = document.getElementById('show-login');
+    const showRegisterBtn = document.getElementById('show-register');
+    const registerSection = document.getElementById('register-section');
+    const loginSection = document.getElementById('login-section');
+    const formTitle = document.querySelector('.form-title');
+
+    showLoginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        registerSection.classList.add('hidden');
+        loginSection.classList.remove('hidden');
+        formTitle.textContent = 'INICIAR SESIÓN';
+    });
+
+    showRegisterBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginSection.classList.add('hidden');
+        registerSection.classList.remove('hidden');
+        formTitle.textContent = 'REGÍSTRATE EN MOTOTAXI HUARMEY';
+    });
 });

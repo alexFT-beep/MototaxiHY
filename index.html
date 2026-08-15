@@ -36,7 +36,8 @@
             <h2 class="form-title">REGÍSTRATE EN MOTOTAXI HUARMEY</h2>
 
             <!-- Role Selection Tabs -->
-            <div class="tabs-container">
+            <div id="register-section">
+                <div class="tabs-container">
                 <button class="tab-btn active" data-target="pasajero">
                     <i class="fa-solid fa-user"></i> Soy pasajero
                 </button>
@@ -53,7 +54,15 @@
                     <label for="fullName">Nombre Completo</label>
                     <div class="input-wrapper">
                         <i class="fa-solid fa-id-card input-icon"></i>
-                        <input type="text" id="fullName" name="fullName" placeholder="Ingresa tu nombre completo" required>
+                        <input type="text" id="fullName" name="fullName" placeholder="Ingresa tu nombre completo" pattern="[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+" title="Solo letras y espacios" maxlength="100" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="dni">DNI / Documento de Identidad</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-address-card input-icon"></i>
+                        <input type="text" id="dni" name="dni" placeholder="Ingresa tu DNI" pattern="\d{8,9}" maxlength="9" title="Debe contener 8 o 9 dígitos numéricos" required>
                     </div>
                 </div>
 
@@ -61,7 +70,7 @@
                     <label for="phone">Teléfono de Contacto</label>
                     <div class="input-wrapper">
                         <i class="fa-solid fa-phone input-icon"></i>
-                        <input type="tel" id="phone" name="phone" placeholder="Ej. 987654321" required>
+                        <input type="tel" id="phone" name="phone" placeholder="Ej. 987654321" pattern="\d{9}" maxlength="9" title="Debe contener exactamente 9 dígitos numéricos" required>
                     </div>
                 </div>
 
@@ -111,7 +120,7 @@
                         <label for="plateNumber">Número de placa de la mototaxi</label>
                         <div class="input-wrapper">
                             <i class="fa-solid fa-hashtag input-icon"></i>
-                            <input type="text" id="plateNumber" name="plateNumber" placeholder="Ej. MTX-1234">
+                            <input type="text" id="plateNumber" name="plateNumber" placeholder="Ej. MTX-1234" pattern="[a-zA-Z0-9-]{6,10}" maxlength="10" title="Ejemplo: MTX-1234">
                         </div>
                     </div>
 
@@ -119,7 +128,7 @@
                         <label for="license">Número de licencia de conducir</label>
                         <div class="input-wrapper">
                             <i class="fa-solid fa-id-badge input-icon"></i>
-                            <input type="text" id="license" name="license" placeholder="Ej. Q12345678">
+                            <input type="text" id="license" name="license" placeholder="Ej. Q12345678" pattern="[a-zA-Z0-9]{8,15}" maxlength="15" title="Ejemplo: Q12345678">
                         </div>
                     </div>
 
@@ -127,8 +136,27 @@
                         <label for="model">Modelo de la mototaxi (Opcional)</label>
                         <div class="input-wrapper">
                             <svg class="input-icon" width="1em" height="1em" viewBox="0 0 24 24" fill="currentColor"><path d="M19 12h-2V7.5c0-.8-.6-1.5-1.4-1.5H7.4C6.6 6 6 6.7 6 7.5V12H5c-1.1 0-2 .9-2 2v3h2c0 1.1.9 2 2 2s2-.9 2-2h6c0 1.1.9 2 2 2s2-.9 2-2h2v-3c0-1.1-.9-2-2-2zM7.5 7.5h9V11h-9V7.5zM7 17c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1zm10 0c-.6 0-1-.4-1-1s.4-1 1-1 1 .4 1 1-.4 1-1 1z" /></svg>
-                            <input type="text" id="model" name="model" placeholder="Ej. Bajaj RE, TVS King">
+                            <input type="text" id="model" name="model" placeholder="Ej. Bajaj RE, TVS King" maxlength="50">
                         </div>
+                    </div>
+                </div>
+
+                <!-- Password Fields (Common) -->
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <input type="password" id="password" name="password" class="password-input" placeholder="Crea una contraseña" minlength="6" maxlength="50" required>
+                        <i class="fa-solid fa-eye toggle-password"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirmar contraseña</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <input type="password" id="confirmPassword" name="confirmPassword" class="password-input" placeholder="Repite la contraseña" minlength="6" maxlength="50" required>
+                        <i class="fa-solid fa-eye toggle-password"></i>
                     </div>
                 </div>
 
@@ -137,7 +165,44 @@
                     <i class="fa-solid fa-user-plus btn-icon"></i>
                     <span id="submit-text">Crear mi cuenta</span>
                 </button>
+
+                <!-- Login Link -->
+                <div class="login-link">
+                    <span>Ya tengo cuenta:</span> <a href="#" id="show-login">INICIAR SESIÓN</a>
+                </div>
             </form>
+            </div>
+
+            <!-- Login Section -->
+            <div id="login-section" class="hidden">
+                <form id="login-form" action="#" method="POST">
+                    <div class="form-group">
+                        <label for="login-dni">DNI / Documento de Identidad</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-address-card input-icon"></i>
+                            <input type="text" id="login-dni" name="login-dni" placeholder="Ingresa tu DNI" pattern="\d{8,9}" maxlength="9" title="Debe contener 8 o 9 dígitos numéricos" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="login-password">Contraseña</label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-lock input-icon"></i>
+                            <input type="password" id="login-password" name="login-password" class="password-input" placeholder="Ingresa tu contraseña" required>
+                            <i class="fa-solid fa-eye toggle-password"></i>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn">
+                        <i class="fa-solid fa-right-to-bracket btn-icon"></i>
+                        <span>Ingresar</span>
+                    </button>
+
+                    <div class="login-link">
+                        <span>¿No tienes cuenta?</span> <a href="#" id="show-register">REGÍSTRATE AQUÍ</a>
+                    </div>
+                </form>
+            </div>
         </div>
     </main>
 

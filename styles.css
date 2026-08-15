@@ -197,6 +197,23 @@ body {
     box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.2);
 }
 
+.input-wrapper input.password-input {
+    padding-right: 45px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 15px;
+    color: #94A3B8;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: color 0.3s ease;
+}
+
+.toggle-password:hover {
+    color: var(--navy-blue);
+}
+
 /* Hide mototaxista fields initially */
 .hidden {
     display: none;
@@ -228,6 +245,25 @@ body {
 
 .submit-btn:active {
     transform: scale(0.98);
+}
+
+/* Login Link */
+.login-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.login-link a {
+    color: var(--gold);
+    text-decoration: none;
+    font-weight: 700;
+    font-family: var(--font-heading);
+}
+
+.login-link a:hover {
+    text-decoration: underline;
 }
 
 @media (max-width: 480px) {
