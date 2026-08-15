@@ -100,4 +100,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     password.addEventListener('change', validatePassword);
     confirmPassword.addEventListener('keyup', validatePassword);
+
+    // Redirect to Dashboard on Form Submit
+    const registrationForm = document.getElementById('registration-form');
+    if(registrationForm) {
+        registrationForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            window.location.href = 'dashboard-pasajero.html';
+        });
+    }
+
+    const loginForm = document.getElementById('login-form');
+    if(loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            window.location.href = 'dashboard-pasajero.html';
+        });
+    }
 });
