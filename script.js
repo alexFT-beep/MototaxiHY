@@ -1,4 +1,38 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const DEFAULT_USER_NAME = 'Usuario';
+    const DEFAULT_USER_ZONE = 'Centro de Huarmey';
+
+    function getFirstName(fullName) {
+        const trimmed = (fullName || '').trim();
+        if (!trimmed) return DEFAULT_USER_NAME;
+        const firstName = trimmed.split(/\s+/)[0];
+        return firstName || DEFAULT_USER_NAME;
+    }
+
+    function getSelectedZoneText(selectEl) {
+        if (!selectEl || selectEl.selectedIndex < 0) return DEFAULT_USER_ZONE;
+        const selected = selectEl.options[selectEl.selectedIndex];
+        if (!selected || !selected.value) return DEFAULT_USER_ZONE;
+        return selected.text.trim() || DEFAULT_USER_ZONE;
+    }
+
+    function savePassengerProfile(fullName, zoneSelect) {
+        localStorage.setItem('mototaxi_userName', getFirstName(fullName));
+        localStorage.setItem('mototaxi_userZone', getSelectedZoneText(zoneSelect));
+    }
+
+    function loadPassengerProfile() {
+        const greetingName = document.querySelector('#user-greeting span');
+        const greetingZone = document.querySelector('#user-zone span');
+
+        if (!greetingName || !greetingZone) return;
+
+        greetingName.textContent = localStorage.getItem('mototaxi_userName') || DEFAULT_USER_NAME;
+        greetingZone.textContent = localStorage.getItem('mototaxi_userZone') || DEFAULT_USER_ZONE;
+    }
+
+    loadPassengerProfile();
+
     const tabBtns = document.querySelectorAll('.tab-btn');
     const mototaxistaFields = document.getElementById('mototaxista-fields');
     const submitBtnText = document.getElementById('submit-text');
@@ -72,55 +106,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginSection = document.getElementById('login-section');
     const formTitle = document.querySelector('.form-title');
 
-    showLoginBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        registerSection.classList.add('hidden');
-        loginSection.classList.remove('hidden');
-        formTitle.textContent = 'INICIAR SESIÓN';
-    });
+    if (showLoginBtn && showRegisterBtn && registerSection && loginSection && formTitle) {
+        showLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            registerSection.classList.add('hidden');
+            loginSection.classList.remove('hidden');
+            formTitle.textContent = 'INICIAR SESIÓN';
+        });
 
-    showRegisterBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        loginSection.classList.add('hidden');
-        registerSection.classList.remove('hidden');
-        formTitle.textContent = 'REGÍSTRATE EN MOTOTAXI HUARMEY';
-    });
+        showRegisterBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginSection.classList.add('hidden');
+            registerSection.classList.remove('hidden');
+            formTitle.textContent = 'REGÍSTRATE EN MOTOTAXI HUARMEY';
+        });
+    }
 
     // Password match validation
     const password = document.getElementById('password');
     const confirmPassword = document.getElementById('confirmPassword');
 
-    function validatePassword() {
-        if (password.value !== confirmPassword.value) {
-            confirmPassword.setCustomValidity("Las contraseñas no coinciden");
-        } else {
-            confirmPassword.setCustomValidity('');
+    if (password && confirmPassword) {
+        function validatePassword() {
+            if (password.value !== confirmPassword.value) {
+                confirmPassword.setCustomValidity("Las contraseñas no coinciden");
+            } else {
+                confirmPassword.setCustomValidity('');
+            }
         }
-    }
 
-    password.addEventListener('change', validatePassword);
-    confirmPassword.addEventListener('keyup', validatePassword);
+        password.addEventListener('change', validatePassword);
+        confirmPassword.addEventListener('keyup', validatePassword);
+    }
 
     // Redirect to Dashboard on Form Submit and Save Data
     const registrationForm = document.getElementById('registration-form');
     if(registrationForm) {
         registrationForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            
-            // Get user data
-            const fullName = document.getElementById('fullName').value.trim();
+
+            const fullName = document.getElementById('fullName').value;
             const zoneSelect = document.getElementById('zone');
-            
-            // Validate that we have data
-            if (fullName && zoneSelect.selectedIndex > 0) {
-                const zoneText = zoneSelect.options[zoneSelect.selectedIndex].text;
-                const firstName = fullName.split(' ')[0]; // Get the first name
-                
-                // Save to local storage
-                localStorage.setItem('mototaxi_userName', firstName);
-                localStorage.setItem('mototaxi_userZone', zoneText);
-            }
-            
+
+            savePassengerProfile(fullName, zoneSelect);
             window.location.href = 'dashboard-pasajero.html';
         });
     }
@@ -133,20 +161,25 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'dashboard-pasajero.html';
         });
     }
-    
-    // Dashboard data population
-    const greetingName = document.querySelector('#user-greeting span');
-    const greetingZone = document.querySelector('#user-zone span');
-    
-    if (greetingName && greetingZone) {
-        const storedName = localStorage.getItem('mototaxi_userName');
-        const storedZone = localStorage.getItem('mototaxi_userZone');
-        
-        if (storedName) {
-            greetingName.textContent = storedName;
-        }
-        if (storedZone) {
-            greetingZone.textContent = storedZone;
+
+    const lazyMap = document.querySelector('.map-container iframe[data-src]');
+    if (lazyMap) {
+        const loadMap = () => {
+            if (!lazyMap.dataset.src) return;
+            lazyMap.src = lazyMap.dataset.src;
+            lazyMap.removeAttribute('data-src');
+        };
+
+        if ('IntersectionObserver' in window) {
+            const mapObserver = new IntersectionObserver((entries) => {
+                if (entries.some((entry) => entry.isIntersecting)) {
+                    loadMap();
+                    mapObserver.disconnect();
+                }
+            }, { rootMargin: '300px' });
+            mapObserver.observe(lazyMap);
+        } else {
+            loadMap();
         }
     }
 });

@@ -5,23 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Pasajero - Mototaxi Huarmey</title>
     <!-- Performance Optimizations -->
+    <link rel="preconnect" href="https://wdirdbryxwtbnprbrkvh.supabase.co" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" href="https://wdirdbryxwtbnprbrkvh.supabase.co/storage/v1/object/public/MotoHy/logo.webp" as="image" fetchpriority="high">
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
+    <link rel="dns-prefetch" href="https://www.google.com">
     <link rel="preload" href="styles.css" as="style">
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
+    <link rel="preload" href="https://wdirdbryxwtbnprbrkvh.supabase.co/storage/v1/object/public/MotoHy/logo.webp" as="image" type="image/webp" fetchpriority="high">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500&display=swap"></noscript>
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/fontawesome.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/solid.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/regular.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/fontawesome.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/solid.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/regular.min.css">
+    </noscript>
 </head>
 <body>
     <!-- Top Header -->
     <header class="top-header">
         <div class="header-container">
             <a href="index.html" class="brand-area" style="text-decoration: none;">
-                <img src="https://wdirdbryxwtbnprbrkvh.supabase.co/storage/v1/object/public/MotoHy/logo.webp" alt="Logo" class="brand-logo" width="48" height="48" fetchpriority="high" decoding="async">
+                <img src="https://wdirdbryxwtbnprbrkvh.supabase.co/storage/v1/object/public/MotoHy/logo.webp" alt="Logo" class="brand-logo" width="48" height="48" fetchpriority="high" decoding="sync">
                 <div class="brand-text">
                     <h1>Mototaxi Huarmey</h1>
                     <p>CONDUCTORES VERIFICADOS EN LÍNEA</p>
@@ -100,10 +108,11 @@
 
         <!-- Integrated Map Container -->
         <div class="map-container">
-            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d31877.719854083974!2d-78.17469608486687!3d-10.062317257159611!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x91aa164a0cbab349%3A0xaefe982abe020fd4!2sHuarmey!5e1!3m2!1ses!2spe!4v1786762546172!5m2!1ses!2spe" width="100%" height="400" style="border:0; border-radius: 12px;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+            <iframe data-src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d31877.719854083974!2d-78.17469608486687!3d-10.062317257159611!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x91aa164a0cbab349%3A0xaefe982abe020fd4!2sHuarmey!5e1!3m2!1ses!2spe!4v1786762546172!5m2!1ses!2spe" width="100%" height="400" style="border:0; border-radius: 12px;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
         </div>
 
     </main>
 
+    <script src="script.js" defer></script>
 </body>
 </html>
