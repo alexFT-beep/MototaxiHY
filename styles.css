@@ -37,9 +37,11 @@ body {
 }
 
 .header-container {
+    width: 100%;
     max-width: 1200px;
     margin: 0 auto;
     display: flex;
+    justify-content: space-between;
     align-items: center;
 }
 
@@ -264,6 +266,76 @@ body {
 
 .login-link a:hover {
     text-decoration: underline;
+}
+
+/* Dashboard Styles */
+.logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #FFFFFF;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: color 0.3s ease;
+}
+
+.logout-btn:hover {
+    color: var(--light-gold);
+}
+
+.dashboard-main {
+    flex-direction: column;
+    padding-top: 100px;
+    padding-bottom: 50px;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 20px;
+}
+
+.greeting-section {
+    width: 100%;
+    max-width: 600px;
+    text-align: left;
+    margin-bottom: 5px;
+}
+
+.greeting-section h2 {
+    font-family: var(--font-heading);
+    color: var(--navy-blue);
+    font-size: 1.8rem;
+    margin-bottom: 5px;
+}
+
+.greeting-section p {
+    color: var(--navy-blue);
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.greeting-section span {
+    color: var(--gold);
+    font-weight: 700;
+}
+
+.route-card {
+    max-width: 600px;
+    padding: 30px;
+}
+
+.map-container {
+    width: 100%;
+    max-width: 600px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 16px 40px rgba(0, 33, 71, 0.08);
+    background-color: var(--card-bg);
+    padding: 10px;
+}
+
+.map-container iframe {
+    display: block;
+    width: 100%;
 }
 
 @media (max-width: 480px) {

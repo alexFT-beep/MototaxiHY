@@ -85,4 +85,19 @@ document.addEventListener('DOMContentLoaded', () => {
         registerSection.classList.remove('hidden');
         formTitle.textContent = 'REGÍSTRATE EN MOTOTAXI HUARMEY';
     });
+
+    // Password match validation
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirmPassword');
+
+    function validatePassword() {
+        if (password.value !== confirmPassword.value) {
+            confirmPassword.setCustomValidity("Las contraseñas no coinciden");
+        } else {
+            confirmPassword.setCustomValidity('');
+        }
+    }
+
+    password.addEventListener('change', validatePassword);
+    confirmPassword.addEventListener('keyup', validatePassword);
 });
