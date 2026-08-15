@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro - Mototaxi Huarmey</title>
+    <!-- Performance Optimizations -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://wdirdbryxwtbnprbrkvh.supabase.co/storage/v1/object/public/MotoHy/logo.webp" as="image" fetchpriority="high">
+    <link rel="preload" href="styles.css" as="style">
+    
     <!-- Google Fonts: Montserrat for headings, Roboto for body -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <!-- FontAwesome for icons -->
@@ -15,7 +21,7 @@
     <header class="top-header">
         <div class="header-container">
             <a href="index.html" class="brand-area" style="text-decoration: none;">
-                <img src="https://wdirdbryxwtbnprbrkvh.supabase.co/storage/v1/object/public/MotoHy/logo.webp" alt="Logo" class="brand-logo">
+                <img src="https://wdirdbryxwtbnprbrkvh.supabase.co/storage/v1/object/public/MotoHy/logo.webp" alt="Logo" class="brand-logo" width="48" height="48" fetchpriority="high" decoding="async">
                 <div class="brand-text">
                     <h1>Mototaxi Huarmey</h1>
                     <p>CONDUCTORES VERIFICADOS EN LÍNEA</p>
@@ -135,6 +141,6 @@
         </div>
     </main>
 
-    <script src="script.js"></script>
+    <script src="script.js" defer></script>
 </body>
 </html>
