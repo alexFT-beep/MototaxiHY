@@ -1,6 +1,6 @@
 // Se conectaron los módulos MCP mcpAuth.js y mcpDashboard.js para controlar la lógica del frontend
 import { signIn, signUp, signOut } from './frontend/mcpAuth.js'
-import { createPackageRequest, onPackageUpdate, fetchOpenPackageRequests, updatePackageStatus, fetchActiveMototaxistas, subscribeToAllPackageRequests } from './frontend/mcpDashboard.js'
+import { createPackageRequest, onPackageUpdate, fetchOpenPackageRequests, updatePackageStatus, fetchActiveMototaxistas, subscribeToAllPackageRequests, fetchPassengerActiveRequest } from './frontend/mcpDashboard.js'
 
 document.addEventListener('DOMContentLoaded', () => {
     const DEFAULT_USER_NAME = 'Usuario';
@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     populateDriverSelect();
 
-    // Se implementó la lógica diferenciada del dashboard para mototaxistas (vista de solicitudes)
+    // Se implementó la lógica diferenciada del dashboard para mototaxistas y pasajeros
     const currentRole = localStorage.getItem('mototaxi_userRole') || 'pasajero';
     const passengerRouteCard = document.getElementById('passenger-route-card');
     const driverRequestsCard = document.getElementById('driver-requests-card');
@@ -266,6 +266,56 @@ document.addEventListener('DOMContentLoaded', () => {
         subscribeToAllPackageRequests(() => {
             loadDriverRequests();
         });
+    }
+
+    // Cargar carrera activa en curso para el pasajero al abrir el dashboard
+    if (currentRole === 'pasajero') {
+        loadPassengerActiveTrip();
+    }
+
+    async function loadPassengerActiveTrip() {
+        const passengerPhone = localStorage.getItem('mototaxi_userPhone') || '';
+        if (!passengerPhone) return;
+
+        const { data: activeTrip } = await fetchPassengerActiveRequest(passengerPhone);
+        if (activeTrip) {
+            renderTrackingCard(activeTrip);
+        }
+    }
+
+    // Función auxiliar para renderizar la tarjeta de seguimiento de viaje
+    function renderTrackingCard(activeData) {
+        const trackingCard = document.getElementById('tracking-card');
+        const trackingCodeVal = document.getElementById('tracking-code-val');
+        const trackingStatusVal = document.getElementById('tracking-status-val');
+        const trackingOriginVal = document.getElementById('tracking-origin-val');
+        const trackingDestVal = document.getElementById('tracking-dest-val');
+        const trackingDriverVal = document.getElementById('tracking-driver-val');
+
+        if (trackingCard) trackingCard.classList.remove('hidden');
+        if (trackingCodeVal) trackingCodeVal.textContent = activeData.tracking_code || 'PK-8831';
+        if (trackingStatusVal) trackingStatusVal.textContent = activeData.status || 'Buscando Mototaxi';
+        if (trackingOriginVal) trackingOriginVal.textContent = activeData.origin;
+        if (trackingDestVal) trackingDestVal.textContent = activeData.destination;
+
+        let displayDriver = 'Sin asignar (Buscando...)';
+        if (activeData.driver_name) {
+            displayDriver = activeData.driver_plate ? `${activeData.driver_name} (Placa: ${activeData.driver_plate})` : activeData.driver_name;
+        }
+        if (trackingDriverVal) trackingDriverVal.textContent = displayDriver;
+
+        if (activeData.id) {
+            onPackageUpdate(activeData.id, (err, updated) => {
+                if (updated) {
+                    if (trackingStatusVal) trackingStatusVal.textContent = updated.status;
+                    let updDriver = 'Sin asignar (Buscando...)';
+                    if (updated.driver_name) {
+                        updDriver = updated.driver_plate ? `${updated.driver_name} (Placa: ${updated.driver_plate})` : updated.driver_name;
+                    }
+                    if (trackingDriverVal) trackingDriverVal.textContent = updDriver;
+                }
+            });
+        }
     }
 
     // Se implementó la función loadDriverRequests cargando solicitudes específicas o abiertas dirigidas al mototaxista conectado
@@ -348,10 +398,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 passenger_phone: passengerPhone,
                 origin: origen,
                 destination: destino,
-                status: 'Buscando Mototaxi',
+                status: selectedDriverObj ? 'Solicitado' : 'Buscando Mototaxi',
                 location: '-10.0681, -78.1522',
                 driver_phone: selectedDriverObj ? selectedDriverObj.phone : null,
-                driver_name: selectedDriverObj ? selectedDriverObj.name : 'Buscando Mototaxi...',
+                driver_name: selectedDriverObj ? selectedDriverObj.name : null,
                 driver_plate: selectedDriverObj ? selectedDriverObj.plate : null,
                 driver_id: selectedDriverObj ? selectedDriverObj.id : null
             };
@@ -362,29 +412,8 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const { data, error } = await createPackageRequest(packagePayload);
                 const activeData = data || packagePayload;
-
-                const trackingCard = document.getElementById('tracking-card');
-                const trackingCodeVal = document.getElementById('tracking-code-val');
-                const trackingStatusVal = document.getElementById('tracking-status-val');
-                const trackingOriginVal = document.getElementById('tracking-origin-val');
-                const trackingDestVal = document.getElementById('tracking-dest-val');
-                const trackingDriverVal = document.getElementById('tracking-driver-val');
-
-                if (trackingCard) trackingCard.classList.remove('hidden');
-                if (trackingCodeVal) trackingCodeVal.textContent = activeData.tracking_code || 'PK-8831';
-                if (trackingStatusVal) trackingStatusVal.textContent = activeData.status || 'Buscando Mototaxi';
-                if (trackingOriginVal) trackingOriginVal.textContent = activeData.origin;
-                if (trackingDestVal) trackingDestVal.textContent = activeData.destination;
-                if (trackingDriverVal) trackingDriverVal.textContent = activeData.driver_name || 'Buscando Mototaxi...';
-
-                if (activeData.id) {
-                    onPackageUpdate(activeData.id, (err, updated) => {
-                        if (updated) {
-                            if (trackingStatusVal) trackingStatusVal.textContent = updated.status;
-                            if (trackingDriverVal) trackingDriverVal.textContent = updated.driver_name || 'Asignado';
-                        }
-                    });
-                }
+                renderTrackingCard(activeData);
+                alert('¡Tu solicitud ha sido enviada con éxito! Los mototaxistas han sido notificados en tiempo real.');
             } catch (err) {
                 console.warn('Procesamiento completado con interfaz local:', err);
             } finally {

@@ -26,18 +26,21 @@ export async function fetchOpenPackageRequests(driverPhone = null, driverId = nu
     const { data, error } = await supabase
       .from('packages')
       .select('*')
-      .in('status', ['Buscando Mototaxi', 'Solicitado'])
+      .in('status', ['Buscando Mototaxi', 'Solicitado', 'Pendiente'])
       .order('created_at', { ascending: false })
     
     if (!error && data) {
       const filtered = data.filter(req => {
-        // 1. Solicitudes generales dirigidas a cualquier mototaxi
-        if (!req.driver_phone && !req.driver_id && (!req.driver_name || req.driver_name.includes('Cualquier'))) return true
-        // 2. Solicitudes dirigidas específicamente a este mototaxista por teléfono
-        if (driverPhone && req.driver_phone && req.driver_phone.toString().trim() === driverPhone.toString().trim()) return true
-        // 3. Solicitudes dirigidas específicamente a este mototaxista por ID
-        if (driverId && req.driver_id && req.driver_id.toString().trim() === driverId.toString().trim()) return true
-        return false
+        // 1. Solicitud abierta a cualquier mototaxista (sin driver_phone ni driver_id asignado)
+        const isGeneral = !req.driver_phone && !req.driver_id
+        
+        // 2. Solicitud dirigida a este mototaxista por teléfono
+        const isDirectPhone = driverPhone && req.driver_phone && req.driver_phone.toString().trim() === driverPhone.toString().trim()
+        
+        // 3. Solicitud dirigida a este mototaxista por ID
+        const isDirectId = driverId && req.driver_id && req.driver_id.toString().trim() === driverId.toString().trim()
+
+        return isGeneral || isDirectPhone || isDirectId
       })
       return { data: filtered, error: null }
     }
@@ -57,6 +60,28 @@ export async function fetchOpenPackageRequests(driverPhone = null, driverId = nu
 
   return { data: [], error: null }
 }
+
+// Se implementó la función fetchPassengerActiveRequest para consultar la carrera activa del pasajero
+export async function fetchPassengerActiveRequest(passengerPhone) {
+  if (!passengerPhone) return { data: null, error: null }
+  try {
+    const { data, error } = await supabase
+      .from('packages')
+      .select('*')
+      .eq('passenger_phone', passengerPhone)
+      .in('status', ['Buscando Mototaxi', 'Solicitado', 'Asignado', 'En Camino', 'En Viaje'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (!error && data && data.length > 0) {
+      return { data: data[0], error: null }
+    }
+  } catch (err) {
+    console.warn('Error al obtener la carrera activa del pasajero:', err)
+  }
+  return { data: null, error: null }
+}
+
 
 
 // Se implementó la función trackPackageByCode para realizar el seguimiento del envío mediante su código público
