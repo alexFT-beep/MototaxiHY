@@ -112,14 +112,50 @@ export async function fetchActiveMototaxistas() {
 
   // Lista de mototaxistas activos por defecto desplegados en el mapa de Huarmey
   const defaultDrivers = [
-    { id: 'm1', nombre_completo: 'Ramón "El Veloz" Gutierrez', numero_placa: 'HY-1234', modelo_mototaxi: 'Zongshen 150cc Rojo', zona_referencia: 'Plaza de Armas', lat: -10.0681, lng: -78.1522 },
-    { id: 'm2', nombre_completo: 'Luis Alberto "Tigre" Flores', numero_placa: 'HY-5678', modelo_mototaxi: 'Honda Bajaj 200 Azul', zona_referencia: 'Mercado Modelo', lat: -10.0665, lng: -78.1535 },
-    { id: 'm3', nombre_completo: 'David "El Rayo" Huanqui', numero_placa: 'HY-9012', modelo_mototaxi: 'Kwanqi 150cc Amarillo', zona_referencia: 'Hospital de Apoyo Huarmey', lat: -10.0642, lng: -78.1550 },
-    { id: 'm4', nombre_completo: 'Héctor "Campeón" Salazar', numero_placa: 'HY-3456', modelo_mototaxi: 'Mavila 150cc Negro', zona_referencia: 'Terminal Panamericana Norte', lat: -10.0620, lng: -78.1580 },
-    { id: 'm5', nombre_completo: 'Gonzalo "Huarmeyano" Vega', numero_placa: 'HY-7890', modelo_mototaxi: 'Zongshen 200cc Verde', zona_referencia: 'Playa Tuquillo', lat: -10.1020, lng: -78.1820 }
+    { id: 'm1', phone: '912345678', telefono: '912345678', nombre_completo: 'Ramón "El Veloz" Gutierrez', numero_placa: 'HY-1234', modelo_mototaxi: 'Zongshen 150cc Rojo', zona_referencia: 'Plaza de Armas', lat: -10.0681, lng: -78.1522 },
+    { id: 'm2', phone: '923456789', telefono: '923456789', nombre_completo: 'Luis Alberto "Tigre" Flores', numero_placa: 'HY-5678', modelo_mototaxi: 'Honda Bajaj 200 Azul', zona_referencia: 'Mercado Modelo', lat: -10.0665, lng: -78.1535 },
+    { id: 'm3', phone: '934567890', telefono: '934567890', nombre_completo: 'David "El Rayo" Huanqui', numero_placa: 'HY-9012', modelo_mototaxi: 'Kwanqi 150cc Amarillo', zona_referencia: 'Hospital de Apoyo Huarmey', lat: -10.0642, lng: -78.1550 },
+    { id: 'm4', phone: '945678901', telefono: '945678901', nombre_completo: 'Héctor "Campeón" Salazar', numero_placa: 'HY-3456', modelo_mototaxi: 'Mavila 150cc Negro', zona_referencia: 'Terminal Panamericana Norte', lat: -10.0620, lng: -78.1580 },
+    { id: 'm5', phone: '956789012', telefono: '956789012', nombre_completo: 'Gonzalo "Huarmeyano" Vega', numero_placa: 'HY-7890', modelo_mototaxi: 'Zongshen 200cc Verde', zona_referencia: 'Playa Tuquillo', lat: -10.1020, lng: -78.1820 }
   ]
   return { data: defaultDrivers, error: null }
 }
+
+// Se implementó la función fetchOccupiedDriverPhones para consultar los teléfonos de conductores en viajes activos
+export async function fetchOccupiedDriverPhones() {
+  try {
+    const { data, error } = await supabase
+      .from('packages')
+      .select('driver_phone')
+      .in('status', ['Asignado', 'En Camino', 'En Viaje'])
+    
+    if (!error && data) {
+      const occupied = data
+        .map(row => row.driver_phone)
+        .filter(phone => phone && phone.toString().trim() !== '')
+      return occupied
+    }
+  } catch (err) {
+    console.warn('Error al obtener conductores ocupados:', err)
+  }
+  return []
+}
+
+// Se implementó la función fetchAvailableDrivers para devolver conductores libres
+export async function fetchAvailableDrivers() {
+  const { data: allDrivers } = await fetchActiveMototaxistas()
+  const occupiedPhones = await fetchOccupiedDriverPhones()
+
+  if (!allDrivers) return { data: [], available: [], occupiedPhones: [] }
+
+  const availableDrivers = allDrivers.filter(driver => {
+    const phone = (driver.telefono || driver.phone || '').toString().trim()
+    return !occupiedPhones.includes(phone)
+  })
+
+  return { data: allDrivers, available: availableDrivers, occupiedPhones }
+}
+
 
 // Se implementó la función createPackageRequest garantizando resiliencia sin errores de red
 export async function createPackageRequest(packageData) {

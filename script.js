@@ -1,6 +1,6 @@
 // Se conectaron los módulos MCP mcpAuth.js y mcpDashboard.js para controlar la lógica del frontend
 import { signIn, signUp, signOut } from './frontend/mcpAuth.js'
-import { createPackageRequest, onPackageUpdate, fetchOpenPackageRequests, updatePackageStatus, fetchActiveMototaxistas, subscribeToAllPackageRequests, fetchPassengerActiveRequest } from './frontend/mcpDashboard.js'
+import { createPackageRequest, onPackageUpdate, fetchOpenPackageRequests, updatePackageStatus, fetchActiveMototaxistas, subscribeToAllPackageRequests, fetchPassengerActiveRequest, fetchAvailableDrivers, fetchOccupiedDriverPhones } from './frontend/mcpDashboard.js'
 
 document.addEventListener('DOMContentLoaded', () => {
     const DEFAULT_USER_NAME = 'Usuario';
@@ -228,24 +228,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Se implementó el menú desplegable dinámico para seleccionar mototaxistas específicos
+    // Se implementó el menú desplegable dinámico para seleccionar mototaxistas específicos mostrando su disponibilidad real
     const driverSelect = document.getElementById('driver-select');
     async function populateDriverSelect() {
         if (!driverSelect) return;
-        const { data: drivers } = await fetchActiveMototaxistas();
+        const { data: drivers, occupiedPhones } = await fetchAvailableDrivers();
         if (!drivers || drivers.length === 0) return;
 
         driverSelect.innerHTML = '<option value="">Cualquier Mototaxi disponible en Huarmey</option>';
 
         drivers.forEach(d => {
-            const phone = d.telefono || d.phone || '';
+            const phone = (d.telefono || d.phone || '').toString().trim();
             const name = d.nombre_completo || d.full_name || d.name || 'Mototaxista Verificado';
             const plate = d.numero_placa || d.plate_number || d.plate || 'S/N';
             const id = d.id || '';
+            const isOccupied = occupiedPhones.includes(phone);
             
             const option = document.createElement('option');
             option.value = JSON.stringify({ phone, name, plate, id });
-            option.textContent = `🛺 ${name} (Placa: ${plate})`;
+            option.textContent = isOccupied ? `🔴 ${name} (Placa: ${plate}) - OCUPADO` : `🟢 ${name} (Placa: ${plate}) - DISPONIBLE`;
             driverSelect.appendChild(option);
         });
     }
@@ -370,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Se implementó el envío del formulario de solicitud de mototaxi guardando el conductor seleccionado en Supabase
+    // Se implementó el envío del formulario con comprobación de conductores disponibles y reasignación automática
     const routeForm = document.getElementById('route-form');
     if (routeForm) {
         routeForm.addEventListener('submit', async function(e) {
@@ -384,12 +385,43 @@ document.addEventListener('DOMContentLoaded', () => {
             const passengerName = localStorage.getItem('mototaxi_userFullName') || localStorage.getItem('mototaxi_userName') || DEFAULT_USER_NAME;
             const passengerPhone = localStorage.getItem('mototaxi_userPhone') || '987654321';
 
+            // 1. Verificar disponibilidad real de conductores en tiempo real
+            const { available: availableDrivers, occupiedPhones } = await fetchAvailableDrivers();
+
+            // Mensaje requerido si no se logra encontrar conductor disponible
+            if (!availableDrivers || availableDrivers.length === 0) {
+                alert('⚠️ No hay conductores asignados disponibles en este momento. Todos los conductores están ocupados en servicio. Por favor, reintenta en unos minutos.');
+                return;
+            }
+
             let selectedDriverObj = null;
             if (driverSelect && driverSelect.value) {
                 try {
                     selectedDriverObj = JSON.parse(driverSelect.value);
                 } catch (err) {
                     // noop
+                }
+            }
+
+            // 2. Si el pasajero eligió a un conductor que está OCUPADO con otro viaje
+            if (selectedDriverObj) {
+                const targetPhone = (selectedDriverObj.phone || '').toString().trim();
+                if (occupiedPhones.includes(targetPhone)) {
+                    // Buscar otro conductor libre
+                    const nextFreeDriver = availableDrivers[0];
+                    const nextPhone = (nextFreeDriver.telefono || nextFreeDriver.phone || '').toString().trim();
+                    const nextName = nextFreeDriver.nombre_completo || nextFreeDriver.full_name || 'Mototaxista Verificado';
+                    const nextPlate = nextFreeDriver.numero_placa || nextFreeDriver.plate_number || 'S/N';
+                    const nextId = nextFreeDriver.id || '';
+
+                    alert(`⚠️ El conductor ${selectedDriverObj.name} se encuentra ocupado en este momento realizando un viaje. Se ha asignado automáticamente tu solicitud al siguiente conductor disponible: ${nextName} (Placa: ${nextPlate}).`);
+
+                    selectedDriverObj = {
+                        phone: nextPhone,
+                        name: nextName,
+                        plate: nextPlate,
+                        id: nextId
+                    };
                 }
             }
 
@@ -413,7 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const { data, error } = await createPackageRequest(packagePayload);
                 const activeData = data || packagePayload;
                 renderTrackingCard(activeData);
-                alert('¡Tu solicitud ha sido enviada con éxito! Los mototaxistas han sido notificados en tiempo real.');
+                alert('¡Tu solicitud ha sido enviada con éxito! Los conductores disponibles han sido notificados.');
             } catch (err) {
                 console.warn('Procesamiento completado con interfaz local:', err);
             } finally {
@@ -422,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Se implementó el mapa interactivo estilo InDrive con selección táctil de mototaxis sobre el mapa
+    // Se implementó el mapa interactivo estilo InDrive con estado de disponibilidad de conductores
     let mapInstance = null;
     let driverMarkers = [];
 
@@ -447,7 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Se cargaron y renderizaron múltiples conductores verificados desplegados en Huarmey estilo InDrive
         async function loadAllMototaxisOnMap() {
-            const { data: drivers } = await fetchActiveMototaxistas();
+            const { data: drivers, occupiedPhones } = await fetchAvailableDrivers();
             
             const driverLocations = [
                 { phone: '912345678', name: 'Ramón "El Veloz" Gutierrez', plate: 'HY-1234', model: 'Zongshen 150cc Rojo', zone: 'Plaza de Armas', lat: -10.0681, lng: -78.1522 },
@@ -459,7 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const activeList = (drivers && drivers.length > 0) ? drivers.map((d, i) => ({
                 id: d.id || driverLocations[i % 5].id || '',
-                phone: d.telefono || d.phone || driverLocations[i % 5].phone,
+                phone: (d.telefono || d.phone || driverLocations[i % 5].phone).toString().trim(),
                 name: d.nombre_completo || driverLocations[i % 5].name,
                 plate: d.numero_placa || driverLocations[i % 5].plate,
                 model: d.modelo_mototaxi || driverLocations[i % 5].model,
@@ -470,6 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Renderizar marcador para cada mototaxi con botón interactivo de selección
             activeList.forEach((driver) => {
+                const isOccupied = occupiedPhones.includes(driver.phone);
                 const marker = L.marker([driver.lat, driver.lng], { icon: mototaxiIcon }).addTo(mapInstance);
                 
                 const popupContent = `
@@ -480,11 +513,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p style="margin: 2px 0; font-size: 0.8rem; color: #333;"><strong>Placa:</strong> ${driver.plate}</p>
                         <p style="margin: 2px 0; font-size: 0.8rem; color: #333;"><strong>Modelo:</strong> ${driver.model}</p>
                         <p style="margin: 2px 0; font-size: 0.8rem; color: #333;"><strong>Zona:</strong> ${driver.zone}</p>
-                        <span style="display: inline-block; margin-top: 4px; background: #00b894; color: #fff; padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.75rem;">
-                            🟢 En línea (Disponible)
-                        </span>
-                        <button class="select-map-driver-btn" data-name="${driver.name}" data-plate="${driver.plate}" style="margin-top: 8px; width: 100%; background: #d4af37; color: #000; font-weight: bold; border: none; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
-                            🛺 Solicitar a este Conductor
+                        ${isOccupied ? 
+                            '<span style="display: inline-block; margin-top: 4px; background: #e74c3c; color: #fff; padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.75rem;">🔴 Ocupado en viaje</span>' : 
+                            '<span style="display: inline-block; margin-top: 4px; background: #00b894; color: #fff; padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.75rem;">🟢 En línea (Disponible)</span>'
+                        }
+                        <button class="select-map-driver-btn" data-phone="${driver.phone}" data-name="${driver.name}" data-plate="${driver.plate}" style="margin-top: 8px; width: 100%; background: ${isOccupied ? '#7f8c8d' : '#d4af37'}; color: ${isOccupied ? '#fff' : '#000'}; font-weight: bold; border: none; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
+                            ${isOccupied ? '⚠️ Conductor Ocupado' : '🛺 Solicitar a este Conductor'}
                         </button>
                     </div>
                 `;
@@ -497,6 +531,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             btn.onclick = () => {
                                 const targetName = btn.getAttribute('data-name');
                                 const targetPlate = btn.getAttribute('data-plate');
+                                const targetPhone = btn.getAttribute('data-phone');
+
+                                if (occupiedPhones.includes(targetPhone)) {
+                                    alert(`⚠️ El conductor ${targetName} se encuentra actualmente ocupado en un viaje. Por favor, selecciona otro conductor disponible.`);
+                                    return;
+                                }
+
                                 if (driverSelect) {
                                     for (let opt of driverSelect.options) {
                                         if (opt.textContent.includes(targetName)) {
@@ -530,7 +571,3 @@ document.addEventListener('DOMContentLoaded', () => {
         loadAllMototaxisOnMap();
     }
 });
-
-
-
-
