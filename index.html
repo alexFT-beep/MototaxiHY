@@ -150,10 +150,10 @@ git<!DOCTYPE html>
 
                 <!-- Password Fields (Common) -->
                 <div class="form-group">
-                    <label for="password">Contraseña</label>
+                    <label for="password">Contraseña (Máx 12 caracteres)</label>
                     <div class="input-wrapper">
                         <i class="fa-solid fa-lock input-icon"></i>
-                        <input type="password" id="password" name="password" class="password-input" placeholder="Crea una contraseña" minlength="6" maxlength="8" required>
+                        <input type="password" id="password" name="password" class="password-input" placeholder="Crea una contraseña (6 a 12 caracteres)" minlength="6" maxlength="12" required>
                         <i class="fa-solid fa-eye toggle-password"></i>
                     </div>
                 </div>
@@ -162,7 +162,7 @@ git<!DOCTYPE html>
                     <label for="confirmPassword">Confirmar contraseña</label>
                     <div class="input-wrapper">
                         <i class="fa-solid fa-lock input-icon"></i>
-                        <input type="password" id="confirmPassword" name="confirmPassword" class="password-input" placeholder="Repite la contraseña" minlength="6" maxlength="8" required>
+                        <input type="password" id="confirmPassword" name="confirmPassword" class="password-input" placeholder="Repite la contraseña" minlength="6" maxlength="12" required>
                         <i class="fa-solid fa-eye toggle-password"></i>
                     </div>
                 </div>
@@ -184,10 +184,10 @@ git<!DOCTYPE html>
             <div id="login-section" class="hidden">
                 <form id="login-form" action="#" method="POST">
                     <div class="form-group">
-                        <label for="login-dni">DNI / Documento de Identidad</label>
+                        <label for="login-phone">Teléfono de Contacto</label>
                         <div class="input-wrapper">
-                            <i class="fa-solid fa-address-card input-icon"></i>
-                            <input type="text" id="login-dni" name="login-dni" placeholder="Ingresa tu DNI" pattern="\d{8,9}" maxlength="9" title="Debe contener 8 o 9 dígitos numéricos" required>
+                            <i class="fa-solid fa-phone input-icon"></i>
+                            <input type="tel" id="login-phone" name="login-phone" placeholder="Ej. 987654321" pattern="\d{9}" maxlength="9" title="Debe contener exactamente 9 dígitos numéricos" required>
                         </div>
                     </div>
 
@@ -195,10 +195,11 @@ git<!DOCTYPE html>
                         <label for="login-password">Contraseña</label>
                         <div class="input-wrapper">
                             <i class="fa-solid fa-lock input-icon"></i>
-                            <input type="password" id="login-password" name="login-password" class="password-input" placeholder="Ingresa tu contraseña" minlength="6" maxlength="8" required>
+                            <input type="password" id="login-password" name="login-password" class="password-input" placeholder="Ingresa tu contraseña" minlength="6" maxlength="12" required>
                             <i class="fa-solid fa-eye toggle-password"></i>
                         </div>
                     </div>
+
 
                     <button type="submit" class="submit-btn">
                         <i class="fa-solid fa-right-to-bracket btn-icon"></i>
@@ -210,9 +211,11 @@ git<!DOCTYPE html>
                     </div>
                 </form>
             </div>
+
         </div>
     </main>
 
-    <script src="script.js" defer></script>
+    <script type="module" src="script.js"></script>
 </body>
+
 </html>

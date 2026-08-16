@@ -3,26 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Pasajero - Mototaxi Huarmey</title>
-    <!-- Performance Optimizations -->
+    <title>Dashboard Pasajero y Mototaxista - Mototaxi Huarmey</title>
+    <!-- Performance Optimizations & Leaflet CSS -->
     <link rel="preconnect" href="https://wdirdbryxwtbnprbrkvh.supabase.co" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
-    <link rel="dns-prefetch" href="https://www.google.com">
-    <link rel="preload" href="styles.css" as="style">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="preload" href="https://wdirdbryxwtbnprbrkvh.supabase.co/storage/v1/object/public/MotoHy/logo.webp" as="image" type="image/webp" fetchpriority="high">
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500&display=swap"></noscript>
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/fontawesome.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/solid.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/regular.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/fontawesome.min.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/solid.min.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/regular.min.css">
-    </noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Roboto:wght@400;500&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <!-- Top Header -->
@@ -32,11 +22,11 @@
                 <img src="https://wdirdbryxwtbnprbrkvh.supabase.co/storage/v1/object/public/MotoHy/logo.webp" alt="Logo" class="brand-logo" width="48" height="48" fetchpriority="high" decoding="sync">
                 <div class="brand-text">
                     <h1>Mototaxi Huarmey</h1>
-                    <p>CONDUCTORES VERIFICADOS EN LÍNEA</p>
+                    <p id="header-status-role">CONDUCTORES VERIFICADOS EN LÍNEA</p>
                 </div>
             </a>
             
-            <a href="index.html" class="logout-btn">
+            <a href="index.html" class="logout-btn" id="logout-btn">
                 <i class="fa-solid fa-arrow-right-from-bracket"></i>
                 <span class="logout-text">Cerrar sesión</span>
             </a>
@@ -52,8 +42,8 @@
             <p id="user-zone">Zona / Referencia: <span>Centro de Huarmey</span></p>
         </div>
 
-        <!-- Route Selection Card -->
-        <div class="registration-card route-card">
+        <!-- Route Selection Card (Passenger View) -->
+        <div id="passenger-route-card" class="registration-card route-card">
             <h2 class="form-title" style="color: var(--gold); display: flex; align-items: center; justify-content: center; gap: 10px;">
                 <i class="fa-regular fa-compass"></i> A DÓNDE VAS
             </h2>
@@ -106,13 +96,43 @@
             </form>
         </div>
 
-        <!-- Integrated Map Container -->
-        <div class="map-container">
-            <iframe data-src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d31877.719854083974!2d-78.17469608486687!3d-10.062317257159611!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x91aa164a0cbab349%3A0xaefe982abe020fd4!2sHuarmey!5e1!3m2!1ses!2spe!4v1786762546172!5m2!1ses!2spe" width="100%" height="400" style="border:0; border-radius: 12px;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+        <!-- Driver Requests Card (Mototaxista View) -->
+        <div id="driver-requests-card" class="registration-card hidden" style="margin-top: 20px;">
+            <h2 class="form-title" style="color: var(--gold); display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <i class="fa-solid fa-list-check"></i> SOLICITUDES DE PASAJEROS DISPONIBLES
+            </h2>
+            <div id="driver-requests-list" style="margin-top: 15px; display: flex; flex-direction: column; gap: 12px;">
+                <p style="text-align: center; color: #bbb;">Cargando solicitudes de pasajeros en Huarmey...</p>
+            </div>
+        </div>
+
+        <!-- Live Tracking Status Card -->
+        <div id="tracking-card" class="registration-card hidden" style="margin-top: 20px;">
+            <h3 style="color: var(--gold); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-box"></i> SEGUIMIENTO EN TIEMPO REAL
+            </h3>
+            <div style="margin-top: 15px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; font-size: 0.95rem; line-height: 1.6;">
+                <p><strong>Código de Seguimiento:</strong> <span id="tracking-code-val" style="color: #ffd700; font-weight: bold;">-</span></p>
+                <p><strong>Estado:</strong> <span id="tracking-status-val" style="color: #00ffcc; font-weight: bold;">En proceso</span></p>
+                <p><strong>Origen:</strong> <span id="tracking-origin-val">-</span></p>
+                <p><strong>Destino:</strong> <span id="tracking-dest-val">-</span></p>
+                <p><strong>Conductor Asignado:</strong> <span id="tracking-driver-val">Por asignar</span></p>
+            </div>
+        </div>
+
+        <!-- Leaflet Interactive Map Container -->
+        <div class="map-container" style="margin-top: 20px;">
+            <h3 style="color: var(--gold); font-size: 1.1rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-map-location-dot"></i> UBICACIÓN DE LA MOTOTAXI EN VIVO
+            </h3>
+            <div id="leaflet-map" style="width: 100%; height: 420px; border-radius: 12px; border: 2px solid rgba(255,215,0,0.3); z-index: 1;"></div>
         </div>
 
     </main>
 
-    <script src="script.js" defer></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>
+tml>
