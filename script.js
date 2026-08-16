@@ -1,6 +1,6 @@
 // Se conectaron los módulos MCP mcpAuth.js y mcpDashboard.js para controlar la lógica del frontend
 import { signIn, signUp, signOut } from './frontend/mcpAuth.js'
-import { createPackageRequest, onPackageUpdate, fetchOpenPackageRequests, updatePackageStatus, fetchActiveMototaxistas } from './frontend/mcpDashboard.js'
+import { createPackageRequest, onPackageUpdate, fetchOpenPackageRequests, updatePackageStatus, fetchActiveMototaxistas, subscribeToAllPackageRequests } from './frontend/mcpDashboard.js'
 
 document.addEventListener('DOMContentLoaded', () => {
     const DEFAULT_USER_NAME = 'Usuario';
@@ -22,12 +22,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Se implementó el guardado del perfil de usuario y rol en el almacenamiento local
-    function savePassengerProfile(fullName, zoneText, phone = '', role = 'pasajero') {
+    function savePassengerProfile(fullName, zoneText, phone = '', role = 'pasajero', userId = '') {
         localStorage.setItem('mototaxi_userName', getFirstName(fullName));
         localStorage.setItem('mototaxi_userFullName', fullName);
         localStorage.setItem('mototaxi_userZone', zoneText);
         localStorage.setItem('mototaxi_userRole', role);
         if (phone) localStorage.setItem('mototaxi_userPhone', phone);
+        if (userId) localStorage.setItem('mototaxi_userId', userId);
     }
 
     // Se implementó la carga de datos del perfil en la interfaz del dashboard
@@ -174,8 +175,9 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             try {
-                await signUp(userData);
-                savePassengerProfile(fullName, zoneText, phone, activeRole);
+                const res = await signUp(userData);
+                const uid = res?.user?.id || '';
+                savePassengerProfile(fullName, zoneText, phone, activeRole, uid);
                 alert('¡Registro exitoso en Mototaxi Huarmey!');
                 window.location.href = 'dashboard-pasajero.html';
             } catch (err) {
@@ -198,15 +200,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-
             try {
                 const result = await signIn({ phone, password: loginPassword });
                 const meta = result?.user?.user_metadata || {};
                 const userName = meta.fullName || 'Usuario';
                 const userZone = meta.zone || DEFAULT_USER_ZONE;
                 const userRole = meta.role || 'pasajero';
+                const userId = result?.user?.id || '';
                 
-                savePassengerProfile(userName, userZone, phone, userRole);
+                savePassengerProfile(userName, userZone, phone, userRole, userId);
                 alert('¡Bienvenido de vuelta!');
                 window.location.href = 'dashboard-pasajero.html';
             } catch (err) {
@@ -221,9 +223,33 @@ document.addEventListener('DOMContentLoaded', () => {
         logoutBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             await signOut();
+            localStorage.clear();
             window.location.href = 'index.html';
         });
     }
+
+    // Se implementó el menú desplegable dinámico para seleccionar mototaxistas específicos
+    const driverSelect = document.getElementById('driver-select');
+    async function populateDriverSelect() {
+        if (!driverSelect) return;
+        const { data: drivers } = await fetchActiveMototaxistas();
+        if (!drivers || drivers.length === 0) return;
+
+        driverSelect.innerHTML = '<option value="">Cualquier Mototaxi disponible en Huarmey</option>';
+
+        drivers.forEach(d => {
+            const phone = d.telefono || d.phone || '';
+            const name = d.nombre_completo || d.full_name || d.name || 'Mototaxista Verificado';
+            const plate = d.numero_placa || d.plate_number || d.plate || 'S/N';
+            const id = d.id || '';
+            
+            const option = document.createElement('option');
+            option.value = JSON.stringify({ phone, name, plate, id });
+            option.textContent = `🛺 ${name} (Placa: ${plate})`;
+            driverSelect.appendChild(option);
+        });
+    }
+    populateDriverSelect();
 
     // Se implementó la lógica diferenciada del dashboard para mototaxistas (vista de solicitudes)
     const currentRole = localStorage.getItem('mototaxi_userRole') || 'pasajero';
@@ -235,53 +261,66 @@ document.addEventListener('DOMContentLoaded', () => {
         if (passengerRouteCard) passengerRouteCard.classList.add('hidden');
         driverRequestsCard.classList.remove('hidden');
         loadDriverRequests();
+
+        // Suscripción Realtime para actualizar la lista de carreras en tiempo real cuando un pasajero crea una solicitud
+        subscribeToAllPackageRequests(() => {
+            loadDriverRequests();
+        });
     }
 
-    // Se implementó la función loadDriverRequests para cargar y renderizar las carreras disponibles
+    // Se implementó la función loadDriverRequests cargando solicitudes específicas o abiertas dirigidas al mototaxista conectado
     async function loadDriverRequests() {
         if (!driverRequestsList) return;
-        const { data: requests, error } = await fetchOpenPackageRequests();
+        const loggedInPhone = localStorage.getItem('mototaxi_userPhone') || '';
+        const loggedInId = localStorage.getItem('mototaxi_userId') || '';
+        
+        const { data: requests, error } = await fetchOpenPackageRequests(loggedInPhone, loggedInId);
         
         if (error || !requests || requests.length === 0) {
-            driverRequestsList.innerHTML = '<p style="text-align: center; color: #bbb; padding: 15px;">No hay solicitudes pendientes en Huarmey en este momento.</p>';
+            driverRequestsList.innerHTML = '<p style="text-align: center; color: #bbb; padding: 15px;">No hay solicitudes pendientes dirigidas a ti o abiertas en este momento en Huarmey.</p>';
             return;
         }
 
-        driverRequestsList.innerHTML = requests.map(req => `
-            <div style="background: rgba(255,255,255,0.06); padding: 15px; border-radius: 8px; border-left: 4px solid var(--gold); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                <div>
-                    <h4 style="color: #ffd700; margin-bottom: 4px;"><i class="fa-solid fa-user"></i> ${req.passenger_name || 'Pasajero'}</h4>
-                    <p style="font-size: 0.9rem; color: #ddd;"><strong>Origen:</strong> ${req.origin} → <strong>Destino:</strong> ${req.destination}</p>
-                    <p style="font-size: 0.85rem; color: #aaa;"><strong>Teléfono:</strong> ${req.passenger_phone || 'S/N'} | <strong>Código:</strong> ${req.tracking_code || req.id}</p>
+        driverRequestsList.innerHTML = requests.map(req => {
+            const isDirect = loggedInPhone && req.driver_phone && req.driver_phone.toString().trim() === loggedInPhone.toString().trim();
+            return `
+                <div style="background: rgba(255,255,255,0.06); padding: 15px; border-radius: 8px; border-left: 4px solid ${isDirect ? '#00ffcc' : 'var(--gold)'}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        ${isDirect ? '<span style="background: #00ffcc; color: #000; padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.75rem; display: inline-block; margin-bottom: 6px;">⭐ SOLICITUD DIRECTA PARA TI</span>' : ''}
+                        <h4 style="color: #ffd700; margin-bottom: 4px;"><i class="fa-solid fa-user"></i> ${req.passenger_name || 'Pasajero'}</h4>
+                        <p style="font-size: 0.9rem; color: #ddd;"><strong>Origen:</strong> ${req.origin} → <strong>Destino:</strong> ${req.destination}</p>
+                        <p style="font-size: 0.85rem; color: #aaa;"><strong>Teléfono:</strong> ${req.passenger_phone || 'S/N'} | <strong>Código:</strong> ${req.tracking_code || req.id}</p>
+                    </div>
+                    <button class="accept-ride-btn submit-btn" data-id="${req.id}" style="width: auto; padding: 8px 16px; font-size: 0.9rem;">
+                        <i class="fa-solid fa-check"></i> Aceptar Carrera
+                    </button>
                 </div>
-                <button class="accept-ride-btn submit-btn" data-id="${req.id}" style="width: auto; padding: 8px 16px; font-size: 0.9rem;">
-                    <i class="fa-solid fa-check"></i> Aceptar Carrera
-                </button>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
         driverRequestsList.querySelectorAll('.accept-ride-btn').forEach(btn => {
             btn.addEventListener('click', async function() {
                 const reqId = this.getAttribute('data-id');
                 const driverName = localStorage.getItem('mototaxi_userFullName') || localStorage.getItem('mototaxi_userName') || 'Mototaxista Verificado';
-                const driverPhone = localStorage.getItem('mototaxi_userPhone') || '987654321';
+                const driverPhone = localStorage.getItem('mototaxi_userPhone') || '912345678';
 
                 const { data, error } = await updatePackageStatus(reqId, 'Asignado', '-10.0681, -78.1522', {
                     driver_name: driverName,
-                    driver_phone: driverPhone
+                    driver_phone: driverPhone,
+                    status: 'Asignado'
                 });
 
                 if (error) {
                     alert('Error al aceptar la carrera: ' + error);
                 } else {
-                    alert('¡Carrera aceptada! Ubicación del vehículo activada en el mapa.');
+                    alert('¡Carrera aceptada! Ubicación activada en tiempo real.');
                     loadDriverRequests();
                 }
             });
         });
     }
 
-    // Se implementó el envío del formulario de solicitud de mototaxi desde la vista de pasajero
+    // Se implementó el envío del formulario de solicitud de mototaxi guardando el conductor seleccionado en Supabase
     const routeForm = document.getElementById('route-form');
     if (routeForm) {
         routeForm.addEventListener('submit', async function(e) {
@@ -295,13 +334,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const passengerName = localStorage.getItem('mototaxi_userFullName') || localStorage.getItem('mototaxi_userName') || DEFAULT_USER_NAME;
             const passengerPhone = localStorage.getItem('mototaxi_userPhone') || '987654321';
 
+            let selectedDriverObj = null;
+            if (driverSelect && driverSelect.value) {
+                try {
+                    selectedDriverObj = JSON.parse(driverSelect.value);
+                } catch (err) {
+                    // noop
+                }
+            }
+
             const packagePayload = {
                 passenger_name: passengerName,
                 passenger_phone: passengerPhone,
                 origin: origen,
                 destination: destino,
                 status: 'Buscando Mototaxi',
-                location: '-10.0681, -78.1522'
+                location: '-10.0681, -78.1522',
+                driver_phone: selectedDriverObj ? selectedDriverObj.phone : null,
+                driver_name: selectedDriverObj ? selectedDriverObj.name : 'Buscando Mototaxi...',
+                driver_plate: selectedDriverObj ? selectedDriverObj.plate : null,
+                driver_id: selectedDriverObj ? selectedDriverObj.id : null
             };
 
             const submitBtn = routeForm.querySelector('button[type="submit"]');
@@ -323,7 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (trackingStatusVal) trackingStatusVal.textContent = activeData.status || 'Buscando Mototaxi';
                 if (trackingOriginVal) trackingOriginVal.textContent = activeData.origin;
                 if (trackingDestVal) trackingDestVal.textContent = activeData.destination;
-                if (trackingDriverVal) trackingDriverVal.textContent = activeData.driver_name || 'Ramón "El Veloz" Gutierrez (Buscando...)';
+                if (trackingDriverVal) trackingDriverVal.textContent = activeData.driver_name || 'Buscando Mototaxi...';
 
                 if (activeData.id) {
                     onPackageUpdate(activeData.id, (err, updated) => {
@@ -341,7 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Se implementó el mapa interactivo estilo InDrive con múltiples mototaxis en tiempo real en Huarmey
+    // Se implementó el mapa interactivo estilo InDrive con selección táctil de mototaxis sobre el mapa
     let mapInstance = null;
     let driverMarkers = [];
 
@@ -369,14 +421,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const { data: drivers } = await fetchActiveMototaxistas();
             
             const driverLocations = [
-                { name: 'Ramón "El Veloz" Gutierrez', plate: 'HY-1234', model: 'Zongshen 150cc Rojo', zone: 'Plaza de Armas', lat: -10.0681, lng: -78.1522 },
-                { name: 'Luis Alberto "Tigre" Flores', plate: 'HY-5678', model: 'Honda Bajaj 200 Azul', zone: 'Mercado Modelo', lat: -10.0665, lng: -78.1535 },
-                { name: 'David "El Rayo" Huanqui', plate: 'HY-9012', model: 'Kwanqi 150cc Amarillo', zone: 'Hospital de Apoyo Huarmey', lat: -10.0642, lng: -78.1550 },
-                { name: 'Héctor "Campeón" Salazar', plate: 'HY-3456', model: 'Mavila 150cc Negro', zone: 'Terminal Panamericana Norte', lat: -10.0620, lng: -78.1580 },
-                { name: 'Gonzalo "Huarmeyano" Vega', plate: 'HY-7890', model: 'Zongshen 200cc Verde', zone: 'Playa Tuquillo', lat: -10.1020, lng: -78.1820 }
+                { phone: '912345678', name: 'Ramón "El Veloz" Gutierrez', plate: 'HY-1234', model: 'Zongshen 150cc Rojo', zone: 'Plaza de Armas', lat: -10.0681, lng: -78.1522 },
+                { phone: '923456789', name: 'Luis Alberto "Tigre" Flores', plate: 'HY-5678', model: 'Honda Bajaj 200 Azul', zone: 'Mercado Modelo', lat: -10.0665, lng: -78.1535 },
+                { phone: '934567890', name: 'David "El Rayo" Huanqui', plate: 'HY-9012', model: 'Kwanqi 150cc Amarillo', zone: 'Hospital de Apoyo Huarmey', lat: -10.0642, lng: -78.1550 },
+                { phone: '945678901', name: 'Héctor "Campeón" Salazar', plate: 'HY-3456', model: 'Mavila 150cc Negro', zone: 'Terminal Panamericana Norte', lat: -10.0620, lng: -78.1580 },
+                { phone: '956789012', name: 'Gonzalo "Huarmeyano" Vega', plate: 'HY-7890', model: 'Zongshen 200cc Verde', zone: 'Playa Tuquillo', lat: -10.1020, lng: -78.1820 }
             ];
 
             const activeList = (drivers && drivers.length > 0) ? drivers.map((d, i) => ({
+                id: d.id || driverLocations[i % 5].id || '',
+                phone: d.telefono || d.phone || driverLocations[i % 5].phone,
                 name: d.nombre_completo || driverLocations[i % 5].name,
                 plate: d.numero_placa || driverLocations[i % 5].plate,
                 model: d.modelo_mototaxi || driverLocations[i % 5].model,
@@ -385,7 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 lng: d.lng || driverLocations[i % 5].lng
             })) : driverLocations;
 
-            // Renderizar marcador para cada mototaxi
+            // Renderizar marcador para cada mototaxi con botón interactivo de selección
             activeList.forEach((driver) => {
                 const marker = L.marker([driver.lat, driver.lng], { icon: mototaxiIcon }).addTo(mapInstance);
                 
@@ -397,12 +451,39 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p style="margin: 2px 0; font-size: 0.8rem; color: #333;"><strong>Placa:</strong> ${driver.plate}</p>
                         <p style="margin: 2px 0; font-size: 0.8rem; color: #333;"><strong>Modelo:</strong> ${driver.model}</p>
                         <p style="margin: 2px 0; font-size: 0.8rem; color: #333;"><strong>Zona:</strong> ${driver.zone}</p>
-                        <span style="display: inline-block; margin-top: 6px; background: #00b894; color: #fff; padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.75rem;">
+                        <span style="display: inline-block; margin-top: 4px; background: #00b894; color: #fff; padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.75rem;">
                             🟢 En línea (Disponible)
                         </span>
+                        <button class="select-map-driver-btn" data-name="${driver.name}" data-plate="${driver.plate}" style="margin-top: 8px; width: 100%; background: #d4af37; color: #000; font-weight: bold; border: none; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
+                            🛺 Solicitar a este Conductor
+                        </button>
                     </div>
                 `;
                 marker.bindPopup(popupContent);
+
+                marker.on('popupopen', () => {
+                    setTimeout(() => {
+                        const btns = document.querySelectorAll('.select-map-driver-btn');
+                        btns.forEach(btn => {
+                            btn.onclick = () => {
+                                const targetName = btn.getAttribute('data-name');
+                                const targetPlate = btn.getAttribute('data-plate');
+                                if (driverSelect) {
+                                    for (let opt of driverSelect.options) {
+                                        if (opt.textContent.includes(targetName)) {
+                                            opt.selected = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                const routeCard = document.getElementById('passenger-route-card');
+                                if (routeCard) routeCard.scrollIntoView({ behavior: 'smooth' });
+                                alert(`¡Has seleccionado a ${targetName} (Placa: ${targetPlate}) para tu solicitud!`);
+                            };
+                        });
+                    }, 100);
+                });
+
                 driverMarkers.push({ marker, data: driver });
             });
 
@@ -420,6 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadAllMototaxisOnMap();
     }
 });
+
 
 
 

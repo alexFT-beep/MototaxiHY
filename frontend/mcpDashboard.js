@@ -20,27 +20,44 @@ export async function fetchPackage(packageId) {
   return { data, error: null }
 }
 
-// Se implementó la función fetchOpenPackageRequests para que los mototaxistas visualicen todas las solicitudes activas de los usuarios
-export async function fetchOpenPackageRequests() {
+// Se implementó la función fetchOpenPackageRequests para que los mototaxistas visualicen las solicitudes dirigidas a ellos o abiertas en Huarmey
+export async function fetchOpenPackageRequests(driverPhone = null, driverId = null) {
   try {
     const { data, error } = await supabase
       .from('packages')
       .select('*')
-      .eq('status', 'Buscando Mototaxi')
+      .in('status', ['Buscando Mototaxi', 'Solicitado'])
       .order('created_at', { ascending: false })
     
-    if (!error && data) return { data, error: null }
+    if (!error && data) {
+      const filtered = data.filter(req => {
+        // 1. Solicitudes generales dirigidas a cualquier mototaxi
+        if (!req.driver_phone && !req.driver_id && (!req.driver_name || req.driver_name.includes('Cualquier'))) return true
+        // 2. Solicitudes dirigidas específicamente a este mototaxista por teléfono
+        if (driverPhone && req.driver_phone && req.driver_phone.toString().trim() === driverPhone.toString().trim()) return true
+        // 3. Solicitudes dirigidas específicamente a este mototaxista por ID
+        if (driverId && req.driver_id && req.driver_id.toString().trim() === driverId.toString().trim()) return true
+        return false
+      })
+      return { data: filtered, error: null }
+    }
   } catch (err) {
     console.warn('Fallback a API Backend para obtener solicitudes de mototaxista:', err)
   }
 
-  const response = await fetch(`${API_BASE_URL}/packages?status=Buscando+Mototaxi`)
-  if (!response.ok) {
-    return { data: [], error: 'Error al consultar solicitudes abiertas' }
+  try {
+    const response = await fetch(`${API_BASE_URL}/packages?status=Buscando+Mototaxi`)
+    if (response.ok) {
+      const data = await response.json()
+      return { data, error: null }
+    }
+  } catch (err) {
+    console.warn('API local no respondió:', err)
   }
-  const data = await response.json()
-  return { data, error: null }
+
+  return { data: [], error: null }
 }
+
 
 // Se implementó la función trackPackageByCode para realizar el seguimiento del envío mediante su código público
 export async function trackPackageByCode(trackingCode) {
@@ -163,5 +180,31 @@ export function onPackageUpdate(packageId, callback) {
     return () => {}
   }
 }
+
+// Se implementó la función subscribeToAllPackageRequests para sincronizar en tiempo real las solicitudes entre dispositivos
+export function subscribeToAllPackageRequests(callback) {
+  try {
+    const channel = supabase
+      .channel('global-package-requests-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'packages' },
+        (payload) => callback(null, payload)
+      )
+      .subscribe()
+
+    return () => {
+      try {
+        supabase.removeChannel(channel)
+      } catch (e) {
+        // noop
+      }
+    }
+  } catch (err) {
+    console.warn('Suscripción en tiempo real global no disponible:', err)
+    return () => {}
+  }
+}
+
 
 
