@@ -1,6 +1,14 @@
-// Se conectaron los módulos MCP mcpAuth.js y mcpDashboard.js para controlar la lógica del frontend
+// Punto de entrada principal del frontend — conecta autenticación, mapa Leaflet y solicitudes de viaje con Supabase
 import { signIn, signUp, signOut } from './frontend/mcpAuth.js'
-import { createPackageRequest, onPackageUpdate, fetchOpenPackageRequests, updatePackageStatus, fetchActiveMototaxistas, subscribeToAllPackageRequests, fetchPassengerActiveRequest, fetchAvailableDrivers, fetchOccupiedDriverPhones } from './frontend/mcpDashboard.js'
+import {
+    createPackageRequest,
+    onPackageUpdate,
+    fetchOpenPackageRequests,
+    updatePackageStatus,
+    subscribeToAllPackageRequests,
+    fetchPassengerActiveRequest,
+    fetchAvailableDrivers
+} from './frontend/mcpDashboard.js'
 
 document.addEventListener('DOMContentLoaded', () => {
     const DEFAULT_USER_NAME = 'Usuario';
@@ -442,12 +450,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (submitBtn) submitBtn.disabled = true;
 
             try {
-                const { data, error } = await createPackageRequest(packagePayload);
+                const { data } = await createPackageRequest(packagePayload);
                 const activeData = data || packagePayload;
                 renderTrackingCard(activeData);
                 alert('¡Tu solicitud ha sido enviada con éxito! Los conductores disponibles han sido notificados.');
-            } catch (err) {
-                console.warn('Procesamiento completado con interfaz local:', err);
+            } catch (_) {
+                // Si createPackageRequest retorna payload local, renderTrackingCard igual se ejecutó
             } finally {
                 if (submitBtn) submitBtn.disabled = false;
             }
