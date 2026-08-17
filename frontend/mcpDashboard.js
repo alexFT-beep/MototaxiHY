@@ -92,11 +92,8 @@ export async function fetchActiveMototaxistas() {
   if (!error && data?.length > 0) return { data, error: null }
 
   const defaultDrivers = [
-    { id: 'm1', phone: '912345678', telefono: '912345678', nombre_completo: 'Ramón "El Veloz" Gutierrez',    numero_placa: 'HY-1234', modelo_mototaxi: 'Zongshen 150cc Rojo',    zona_referencia: 'Plaza de Armas',              lat: -10.0681, lng: -78.1522 },
-    { id: 'm2', phone: '923456789', telefono: '923456789', nombre_completo: 'Luis Alberto "Tigre" Flores',   numero_placa: 'HY-5678', modelo_mototaxi: 'Honda Bajaj 200 Azul',  zona_referencia: 'Mercado Modelo',               lat: -10.0665, lng: -78.1535 },
-    { id: 'm3', phone: '934567890', telefono: '934567890', nombre_completo: 'David "El Rayo" Huanqui',      numero_placa: 'HY-9012', modelo_mototaxi: 'Kwanqi 150cc Amarillo', zona_referencia: 'Hospital de Apoyo Huarmey',    lat: -10.0642, lng: -78.1550 },
-    { id: 'm4', phone: '945678901', telefono: '945678901', nombre_completo: 'Héctor "Campeón" Salazar',     numero_placa: 'HY-3456', modelo_mototaxi: 'Mavila 150cc Negro',    zona_referencia: 'Terminal Panamericana Norte',  lat: -10.0620, lng: -78.1580 },
-    { id: 'm5', phone: '956789012', telefono: '956789012', nombre_completo: 'Gonzalo "Huarmeyano" Vega',    numero_placa: 'HY-7890', modelo_mototaxi: 'Zongshen 200cc Verde',  zona_referencia: 'Playa Tuquillo',               lat: -10.1020, lng: -78.1820 }
+    { id: 'm1', phone: '912345678', telefono: '912345678', nombre_completo: 'Ramón "El Veloz" Gutierrez',  numero_placa: 'HY-1234', modelo_mototaxi: 'Zongshen 150cc Rojo',  zona_referencia: 'Plaza de Armas', lat: -10.0681, lng: -78.1522 },
+    { id: 'm2', phone: '923456789', telefono: '923456789', nombre_completo: 'Luis Alberto "Tigre" Flores', numero_placa: 'HY-5678', modelo_mototaxi: 'Honda Bajaj 200 Azul', zona_referencia: 'Mercado Modelo',  lat: -10.0665, lng: -78.1535 }
   ]
   return { data: defaultDrivers, error: null }
 }

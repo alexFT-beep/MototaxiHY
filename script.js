@@ -491,21 +491,18 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const driverLocations = [
                 { phone: '912345678', name: 'Ramón "El Veloz" Gutierrez', plate: 'HY-1234', model: 'Zongshen 150cc Rojo', zone: 'Plaza de Armas', lat: -10.0681, lng: -78.1522 },
-                { phone: '923456789', name: 'Luis Alberto "Tigre" Flores', plate: 'HY-5678', model: 'Honda Bajaj 200 Azul', zone: 'Mercado Modelo', lat: -10.0665, lng: -78.1535 },
-                { phone: '934567890', name: 'David "El Rayo" Huanqui', plate: 'HY-9012', model: 'Kwanqi 150cc Amarillo', zone: 'Hospital de Apoyo Huarmey', lat: -10.0642, lng: -78.1550 },
-                { phone: '945678901', name: 'Héctor "Campeón" Salazar', plate: 'HY-3456', model: 'Mavila 150cc Negro', zone: 'Terminal Panamericana Norte', lat: -10.0620, lng: -78.1580 },
-                { phone: '956789012', name: 'Gonzalo "Huarmeyano" Vega', plate: 'HY-7890', model: 'Zongshen 200cc Verde', zone: 'Playa Tuquillo', lat: -10.1020, lng: -78.1820 }
+                { phone: '923456789', name: 'Luis Alberto "Tigre" Flores', plate: 'HY-5678', model: 'Honda Bajaj 200 Azul', zone: 'Mercado Modelo', lat: -10.0665, lng: -78.1535 }
             ];
 
             const activeList = (drivers && drivers.length > 0) ? drivers.map((d, i) => ({
-                id: d.id || driverLocations[i % 5].id || '',
-                phone: (d.telefono || d.phone || driverLocations[i % 5].phone).toString().trim(),
-                name: d.nombre_completo || driverLocations[i % 5].name,
-                plate: d.numero_placa || driverLocations[i % 5].plate,
-                model: d.modelo_mototaxi || driverLocations[i % 5].model,
-                zone: d.zona_referencia || driverLocations[i % 5].zone,
-                lat: d.lat || driverLocations[i % 5].lat,
-                lng: d.lng || driverLocations[i % 5].lng
+                id: d.id || driverLocations[i % 2].id || '',
+                phone: (d.telefono || d.phone || driverLocations[i % 2].phone).toString().trim(),
+                name: d.nombre_completo || driverLocations[i % 2].name,
+                plate: d.numero_placa || driverLocations[i % 2].plate,
+                model: d.modelo_mototaxi || driverLocations[i % 2].model,
+                zone: d.zona_referencia || driverLocations[i % 2].zone,
+                lat: d.lat || driverLocations[i % 2].lat,
+                lng: d.lng || driverLocations[i % 2].lng
             })) : driverLocations;
 
             // Renderizar marcador para cada mototaxi con botón interactivo de selección
