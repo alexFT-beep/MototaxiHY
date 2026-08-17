@@ -97,19 +97,89 @@ ALTER TABLE public.packages         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mototaxistas     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pasajeros        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_credentials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.trip_locations   ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Allow all access to packages"         ON public.packages         FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access to mototaxistas"     ON public.mototaxistas     FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access to pasajeros"        ON public.pasajeros        FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all access to user_credentials" ON public.user_credentials FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access to trip_locations"   ON public.trip_locations   FOR ALL USING (true) WITH CHECK (true);
 
 -- ============================================================
 -- 8. PERMISOS: otorgar acceso al rol anon (cliente Supabase JS)
 -- ============================================================
 GRANT SELECT, INSERT, UPDATE ON public.packages          TO anon, authenticated;
-GRANT SELECT                  ON public.mototaxistas     TO anon, authenticated;
-GRANT SELECT                  ON public.pasajeros        TO anon, authenticated;
-GRANT SELECT, INSERT          ON public.user_credentials TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.mototaxistas     TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.pasajeros        TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.user_credentials TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.trip_locations   TO anon, authenticated;
+
+-- ============================================================
+-- 8.1 DISPARADOR AUTOMÁTICO POSTGRESQL (TRIGGER)
+-- Sincroniza al instante nuevos registros directamente en la tabla mototaxistas o pasajeros
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.sync_user_to_role_tables()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.role = 'mototaxista' THEN
+        INSERT INTO public.mototaxistas (
+            nombre_completo,
+            numero_placa,
+            telefono,
+            zona_referencia,
+            punto_partida_habitual,
+            modelo_mototaxi,
+            numero_licencia,
+            dni,
+            lat,
+            lng
+        )
+        VALUES (
+            NEW.full_name,
+            COALESCE(NULLIF(NEW.plate_number, ''), 'HY-NUEVO'),
+            NEW.phone,
+            COALESCE(NULLIF(NEW.zone, ''), 'Centro de Huarmey'),
+            COALESCE(NULLIF(NEW.zone, ''), 'Plaza de Armas'),
+            COALESCE(NULLIF(NEW.model, ''), 'Zongshen 150cc Rojo'),
+            COALESCE(NULLIF(NEW.license, ''), 'S/N'),
+            COALESCE(NULLIF(NEW.dni, ''), 'S/N'),
+            -10.0681 + (random() - 0.5) * 0.006,
+            -78.1522 + (random() - 0.5) * 0.006
+        )
+        ON CONFLICT (telefono) DO UPDATE
+        SET nombre_completo = EXCLUDED.nombre_completo,
+            numero_placa = EXCLUDED.numero_placa,
+            modelo_mototaxi = EXCLUDED.modelo_mototaxi,
+            zona_referencia = EXCLUDED.zona_referencia,
+            punto_partida_habitual = EXCLUDED.punto_partida_habitual,
+            dni = EXCLUDED.dni;
+    ELSE
+        INSERT INTO public.pasajeros (
+            nombre_completo,
+            numero_documento,
+            telefono,
+            zona_referencia
+        )
+        VALUES (
+            NEW.full_name,
+            COALESCE(NULLIF(NEW.dni, ''), 'S/N'),
+            NEW.phone,
+            COALESCE(NULLIF(NEW.zone, ''), 'Centro de Huarmey')
+        )
+        ON CONFLICT (telefono) DO UPDATE
+        SET nombre_completo = EXCLUDED.nombre_completo,
+            zona_referencia = EXCLUDED.zona_referencia;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_sync_user_credentials ON public.user_credentials;
+
+CREATE TRIGGER trigger_sync_user_credentials
+AFTER INSERT OR UPDATE ON public.user_credentials
+FOR EACH ROW
+EXECUTE FUNCTION public.sync_user_to_role_tables();
 
 -- ============================================================
 -- 9. DATOS INICIALES: 2 mototaxistas verificados en Huarmey
