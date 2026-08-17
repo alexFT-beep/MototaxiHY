@@ -85,11 +85,57 @@ export async function trackPackageByCode(trackingCode) {
   return { data: await response.json(), error: null }
 }
 
-// Devuelve todos los conductores registrados y verificados en Huarmey.
-// Si Supabase falla, retorna lista estática con coordenadas para el mapa Leaflet.
+// Devuelve todos los conductores registrados y verificados en Huarmey (consultando tanto mototaxistas como user_credentials)
 export async function fetchActiveMototaxistas() {
-  const { data, error } = await supabase.from('mototaxistas').select('*')
-  if (!error && data?.length > 0) return { data, error: null }
+  try {
+    const { data: dbMototaxistas } = await supabase.from('mototaxistas').select('*')
+    const { data: credDrivers } = await supabase.from('user_credentials').select('*').eq('role', 'mototaxista')
+
+    const driverMap = new Map()
+
+    if (dbMototaxistas) {
+      dbMototaxistas.forEach(d => {
+        const phone = (d.telefono || d.phone || '').toString().trim()
+        if (phone) {
+          driverMap.set(phone, {
+            id: d.id,
+            phone: phone,
+            telefono: phone,
+            nombre_completo: d.nombre_completo || d.full_name || 'Mototaxista Verificado',
+            numero_placa: d.numero_placa || d.plate_number || 'S/N',
+            modelo_mototaxi: d.modelo_mototaxi || d.model || 'Mototaxi 150cc Rojo',
+            zona_referencia: d.zona_referencia || d.zone || 'Centro de Huarmey',
+            lat: d.lat || (-10.0681 + (Math.random() - 0.5) * 0.005),
+            lng: d.lng || (-78.1522 + (Math.random() - 0.5) * 0.005)
+          })
+        }
+      })
+    }
+
+    if (credDrivers) {
+      credDrivers.forEach(d => {
+        const phone = (d.phone || '').toString().trim()
+        if (phone && !driverMap.has(phone)) {
+          driverMap.set(phone, {
+            id: d.id,
+            phone: phone,
+            telefono: phone,
+            nombre_completo: d.full_name || 'Mototaxista Verificado',
+            numero_placa: d.plate_number || 'HY-NUEVO',
+            modelo_mototaxi: d.model || 'Mototaxi 150cc Rojo',
+            zona_referencia: d.zone || 'Centro de Huarmey',
+            lat: -10.0681 + (Math.random() - 0.5) * 0.005,
+            lng: -78.1522 + (Math.random() - 0.5) * 0.005
+          })
+        }
+      })
+    }
+
+    const allDrivers = Array.from(driverMap.values())
+    if (allDrivers.length > 0) return { data: allDrivers, error: null }
+  } catch (err) {
+    console.warn('Error al obtener mototaxistas:', err)
+  }
 
   const defaultDrivers = [
     { id: 'm1', phone: '912345678', telefono: '912345678', nombre_completo: 'Ramón "El Veloz" Gutierrez',  numero_placa: 'HY-1234', modelo_mototaxi: 'Zongshen 150cc Rojo',  zona_referencia: 'Plaza de Armas', lat: -10.0681, lng: -78.1522 },
