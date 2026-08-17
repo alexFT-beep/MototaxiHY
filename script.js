@@ -335,16 +335,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!driverRequestsList) return;
         const loggedInPhone = localStorage.getItem('mototaxi_userPhone') || '';
         const loggedInId = localStorage.getItem('mototaxi_userId') || '';
+        const loggedInName = localStorage.getItem('mototaxi_userFullName') || localStorage.getItem('mototaxi_userName') || '';
         
-        const { data: requests, error } = await fetchOpenPackageRequests(loggedInPhone, loggedInId);
+        const { data: requests, error } = await fetchOpenPackageRequests(loggedInPhone, loggedInId, loggedInName);
         
         if (error || !requests || requests.length === 0) {
             driverRequestsList.innerHTML = '<p style="text-align: center; color: #bbb; padding: 15px;">No hay solicitudes pendientes dirigidas a ti o abiertas en este momento en Huarmey.</p>';
             return;
         }
 
+        const cleanLoggedInPhone = (loggedInPhone || '').toString().replace(/\D/g, '').slice(-9);
+        const cleanLoggedInName = (loggedInName || '').toString().toLowerCase().trim();
+
         driverRequestsList.innerHTML = requests.map(req => {
-            const isDirect = loggedInPhone && req.driver_phone && req.driver_phone.toString().trim() === loggedInPhone.toString().trim();
+            const reqPhone = (req.driver_phone || '').toString().replace(/\D/g, '').slice(-9);
+            const reqName  = (req.driver_name || '').toString().toLowerCase().trim();
+
+            const isDirectByPhone = cleanLoggedInPhone && reqPhone && cleanLoggedInPhone === reqPhone;
+            const isDirectByName  = cleanLoggedInName && reqName && reqName.length > 2 && (reqName.includes(cleanLoggedInName) || cleanLoggedInName.includes(reqName));
+            const isDirectById    = loggedInId && req.driver_id && req.driver_id.toString().trim() === loggedInId.toString().trim();
+
+            const isDirect = isDirectByPhone || isDirectByName || isDirectById;
             const fareOffer = req.fare || 'S/ 5.00';
             return `
                 <div style="background: rgba(255,255,255,0.06); padding: 15px; border-radius: 8px; border-left: 4px solid ${isDirect ? '#00ffcc' : 'var(--gold)'}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">

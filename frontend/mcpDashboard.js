@@ -23,12 +23,18 @@ export async function fetchPackage(packageId) {
   return { data: null, error: error?.message || 'No encontrado' }
 }
 
+// Función auxiliar para extraer los últimos 9 dígitos de un número telefónico
+function get9Digits(phone) {
+  if (!phone) return ''
+  const digits = phone.toString().replace(/\D/g, '')
+  return digits.length >= 9 ? digits.slice(-9) : digits
+}
+
 // Retorna las solicitudes abiertas o dirigidas directamente a un mototaxista específico.
 // Reglas de visibilidad:
 //  - Solicitudes sin driver_phone y sin driver_id → visibles para TODOS los mototaxistas
-//  - Solicitudes con driver_phone coincidente  → visibles SOLO para ese conductor
-//  - Solicitudes con driver_id coincidente     → visibles SOLO para ese conductor
-export async function fetchOpenPackageRequests(driverPhone = null, driverId = null) {
+//  - Solicitudes con coincidencia por teléfono (9 dígitos), ID o Nombre → visibles para ese conductor
+export async function fetchOpenPackageRequests(driverPhone = null, driverId = null, driverName = null) {
   const { data, error } = await supabase
     .from('packages')
     .select('*')
@@ -36,11 +42,27 @@ export async function fetchOpenPackageRequests(driverPhone = null, driverId = nu
     .order('created_at', { ascending: false })
 
   if (!error && data) {
+    const cleanDriverPhone = get9Digits(driverPhone)
+    const cleanDriverName  = (driverName || '').toString().toLowerCase().trim()
+
     const filtered = data.filter(req => {
-      const isGeneral    = !req.driver_phone && !req.driver_id
-      const isDirectPhone = driverPhone && req.driver_phone?.toString().trim() === driverPhone.toString().trim()
-      const isDirectId    = driverId    && req.driver_id?.toString().trim()    === driverId.toString().trim()
-      return isGeneral || isDirectPhone || isDirectId
+      // 1. Solicitud abierta a cualquier mototaxi
+      const isGeneral = (!req.driver_phone || req.driver_phone.toString().trim() === '') &&
+                        (!req.driver_id || req.driver_id.toString().trim() === '')
+
+      // 2. Coincidencia por teléfono (últimos 9 dígitos)
+      const reqPhone = get9Digits(req.driver_phone)
+      const isDirectPhone = cleanDriverPhone && reqPhone && reqPhone === cleanDriverPhone
+
+      // 3. Coincidencia por ID de conductor
+      const isDirectId = driverId && req.driver_id && req.driver_id.toString().trim() === driverId.toString().trim()
+
+      // 4. Coincidencia por nombre de conductor (respaldo)
+      const reqDriverName = (req.driver_name || '').toString().toLowerCase().trim()
+      const isDirectName  = cleanDriverName && reqDriverName && reqDriverName.length > 2 &&
+                            (reqDriverName.includes(cleanDriverName) || cleanDriverName.includes(reqDriverName))
+
+      return isGeneral || isDirectPhone || isDirectId || isDirectName
     })
     return { data: filtered, error: null }
   }
