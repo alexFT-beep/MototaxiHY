@@ -299,6 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const trackingStatusVal = document.getElementById('tracking-status-val');
         const trackingOriginVal = document.getElementById('tracking-origin-val');
         const trackingDestVal = document.getElementById('tracking-dest-val');
+        const trackingFareVal = document.getElementById('tracking-fare-val');
         const trackingDriverVal = document.getElementById('tracking-driver-val');
 
         if (trackingCard) trackingCard.classList.remove('hidden');
@@ -306,6 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (trackingStatusVal) trackingStatusVal.textContent = activeData.status || 'Buscando Mototaxi';
         if (trackingOriginVal) trackingOriginVal.textContent = activeData.origin;
         if (trackingDestVal) trackingDestVal.textContent = activeData.destination;
+        if (trackingFareVal) trackingFareVal.textContent = activeData.fare || 'S/ 5.00';
 
         let displayDriver = 'Sin asignar (Buscando...)';
         if (activeData.driver_name) {
@@ -317,6 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
             onPackageUpdate(activeData.id, (err, updated) => {
                 if (updated) {
                     if (trackingStatusVal) trackingStatusVal.textContent = updated.status;
+                    if (trackingFareVal && updated.fare) trackingFareVal.textContent = updated.fare;
                     let updDriver = 'Sin asignar (Buscando...)';
                     if (updated.driver_name) {
                         updDriver = updated.driver_plate ? `${updated.driver_name} (Placa: ${updated.driver_plate})` : updated.driver_name;
@@ -342,17 +345,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         driverRequestsList.innerHTML = requests.map(req => {
             const isDirect = loggedInPhone && req.driver_phone && req.driver_phone.toString().trim() === loggedInPhone.toString().trim();
+            const fareOffer = req.fare || 'S/ 5.00';
             return `
                 <div style="background: rgba(255,255,255,0.06); padding: 15px; border-radius: 8px; border-left: 4px solid ${isDirect ? '#00ffcc' : 'var(--gold)'}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                     <div>
                         ${isDirect ? '<span style="background: #00ffcc; color: #000; padding: 2px 8px; border-radius: 12px; font-weight: bold; font-size: 0.75rem; display: inline-block; margin-bottom: 6px;">⭐ SOLICITUD DIRECTA PARA TI</span>' : ''}
                         <h4 style="color: #ffd700; margin-bottom: 4px;"><i class="fa-solid fa-user"></i> ${req.passenger_name || 'Pasajero'}</h4>
                         <p style="font-size: 0.9rem; color: #ddd;"><strong>Origen:</strong> ${req.origin} → <strong>Destino:</strong> ${req.destination}</p>
-                        <p style="font-size: 0.85rem; color: #aaa;"><strong>Teléfono:</strong> ${req.passenger_phone || 'S/N'} | <strong>Código:</strong> ${req.tracking_code || req.id}</p>
+                        <p style="font-size: 0.95rem; color: #00ffcc; font-weight: bold; margin-top: 4px;"><i class="fa-solid fa-coins"></i> Oferta de Tarifa: ${fareOffer}</p>
+                        <p style="font-size: 0.85rem; color: #aaa; margin-top: 2px;"><strong>Teléfono:</strong> ${req.passenger_phone || 'S/N'} | <strong>Código:</strong> ${req.tracking_code || req.id}</p>
                     </div>
-                    <button class="accept-ride-btn submit-btn" data-id="${req.id}" style="width: auto; padding: 8px 16px; font-size: 0.9rem;">
-                        <i class="fa-solid fa-check"></i> Aceptar Carrera
-                    </button>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="accept-ride-btn submit-btn" data-id="${req.id}" style="width: auto; padding: 8px 14px; font-size: 0.85rem;">
+                            <i class="fa-solid fa-check"></i> Aceptar
+                        </button>
+                        <button class="reject-ride-btn" data-id="${req.id}" data-direct="${isDirect}" style="width: auto; padding: 8px 14px; font-size: 0.85rem; background: #e74c3c; color: #fff; font-weight: bold; border: none; border-radius: 6px; cursor: pointer;">
+                            <i class="fa-solid fa-xmark"></i> Rechazar
+                        </button>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -377,6 +387,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
+
+        driverRequestsList.querySelectorAll('.reject-ride-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const reqId = this.getAttribute('data-id');
+                const isDirect = this.getAttribute('data-direct') === 'true';
+
+                let updatePayload = { status: 'Rechazado' };
+                if (isDirect) {
+                    updatePayload = {
+                        status: 'Buscando Mototaxi',
+                        driver_phone: null,
+                        driver_name: null,
+                        driver_plate: null,
+                        driver_id: null
+                    };
+                }
+
+                const { error } = await updatePackageStatus(reqId, updatePayload.status, null, updatePayload);
+
+                if (error) {
+                    alert('Error al rechazar la carrera: ' + error);
+                } else {
+                    alert('Has rechazado la solicitud.');
+                    loadDriverRequests();
+                }
+            });
+        });
     }
 
     // Se implementó el envío del formulario con comprobación de conductores disponibles y reasignación automática
@@ -387,11 +424,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const origenSelect = document.getElementById('origen');
             const destinoSelect = document.getElementById('destino');
+            const fareInput = document.getElementById('fare');
 
             const origen = getSelectedZoneText(origenSelect);
             const destino = getSelectedZoneText(destinoSelect);
             const passengerName = localStorage.getItem('mototaxi_userFullName') || localStorage.getItem('mototaxi_userName') || DEFAULT_USER_NAME;
             const passengerPhone = localStorage.getItem('mototaxi_userPhone') || '987654321';
+            const fareVal = fareInput ? (parseFloat(fareInput.value) || 5.0).toFixed(2) : '5.00';
+            const fareText = `S/ ${fareVal}`;
 
             // 1. Verificar disponibilidad real de conductores en tiempo real
             const { available: availableDrivers, occupiedPhones } = await fetchAvailableDrivers();
@@ -438,6 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 passenger_phone: passengerPhone,
                 origin: origen,
                 destination: destino,
+                fare: fareText,
                 status: selectedDriverObj ? 'Solicitado' : 'Buscando Mototaxi',
                 location: '-10.0681, -78.1522',
                 driver_phone: selectedDriverObj ? selectedDriverObj.phone : null,
@@ -491,21 +532,18 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const driverLocations = [
                 { phone: '912345678', name: 'Ramón "El Veloz" Gutierrez', plate: 'HY-1234', model: 'Zongshen 150cc Rojo', zone: 'Plaza de Armas', lat: -10.0681, lng: -78.1522 },
-                { phone: '923456789', name: 'Luis Alberto "Tigre" Flores', plate: 'HY-5678', model: 'Honda Bajaj 200 Azul', zone: 'Mercado Modelo', lat: -10.0665, lng: -78.1535 },
-                { phone: '934567890', name: 'David "El Rayo" Huanqui', plate: 'HY-9012', model: 'Kwanqi 150cc Amarillo', zone: 'Hospital de Apoyo Huarmey', lat: -10.0642, lng: -78.1550 },
-                { phone: '945678901', name: 'Héctor "Campeón" Salazar', plate: 'HY-3456', model: 'Mavila 150cc Negro', zone: 'Terminal Panamericana Norte', lat: -10.0620, lng: -78.1580 },
-                { phone: '956789012', name: 'Gonzalo "Huarmeyano" Vega', plate: 'HY-7890', model: 'Zongshen 200cc Verde', zone: 'Playa Tuquillo', lat: -10.1020, lng: -78.1820 }
+                { phone: '923456789', name: 'Luis Alberto "Tigre" Flores', plate: 'HY-5678', model: 'Honda Bajaj 200 Azul', zone: 'Mercado Modelo', lat: -10.0665, lng: -78.1535 }
             ];
 
             const activeList = (drivers && drivers.length > 0) ? drivers.map((d, i) => ({
-                id: d.id || driverLocations[i % 5].id || '',
-                phone: (d.telefono || d.phone || driverLocations[i % 5].phone).toString().trim(),
-                name: d.nombre_completo || driverLocations[i % 5].name,
-                plate: d.numero_placa || driverLocations[i % 5].plate,
-                model: d.modelo_mototaxi || driverLocations[i % 5].model,
-                zone: d.zona_referencia || driverLocations[i % 5].zone,
-                lat: d.lat || driverLocations[i % 5].lat,
-                lng: d.lng || driverLocations[i % 5].lng
+                id: d.id || driverLocations[i % 2].id || '',
+                phone: (d.telefono || d.phone || driverLocations[i % 2].phone).toString().trim(),
+                name: d.nombre_completo || driverLocations[i % 2].name,
+                plate: d.numero_placa || driverLocations[i % 2].plate,
+                model: d.modelo_mototaxi || driverLocations[i % 2].model,
+                zone: d.zona_referencia || driverLocations[i % 2].zone,
+                lat: d.lat || driverLocations[i % 2].lat,
+                lng: d.lng || driverLocations[i % 2].lng
             })) : driverLocations;
 
             // Renderizar marcador para cada mototaxi con botón interactivo de selección
