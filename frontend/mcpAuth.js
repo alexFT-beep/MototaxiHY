@@ -86,14 +86,13 @@ export async function signIn({ phone, password }) {
   throw new Error('Número de teléfono o contraseña incorrectos. Revisa los datos e intenta nuevamente.')
 }
 
-// Se implementó la función signUp para guardar las credenciales del usuario en la tabla user_credentials
+// Se implementó la función signUp para guardar las credenciales del usuario en la tabla user_credentials y sincronizar mototaxistas/pasajeros
 export async function signUp(userData) {
   const validPhone = cleanPhone(userData.phone)
 
   if (!userData.password || userData.password.length > 12 || userData.password.length < 6) {
     throw new Error('La contraseña debe tener entre 6 y 12 caracteres.')
   }
-
 
   const credentialRecord = {
     phone: validPhone,
@@ -108,8 +107,32 @@ export async function signUp(userData) {
   }
 
   try {
-    const { data, error } = await supabase.from('user_credentials').upsert(credentialRecord).select().single()
+    const { data, error } = await supabase.from('user_credentials').upsert(credentialRecord, { onConflict: 'phone' }).select().single()
+    
     if (!error && data) {
+      // Sincronizar en la tabla específica según el rol
+      if (data.role === 'mototaxista') {
+        const lat = -10.0681 + (Math.random() - 0.5) * 0.006
+        const lng = -78.1522 + (Math.random() - 0.5) * 0.006
+        await supabase.from('mototaxistas').upsert({
+          nombre_completo: data.full_name,
+          numero_placa: data.plate_number || 'HY-REGISTRO',
+          telefono: data.phone,
+          zona_referencia: data.zone || 'Centro de Huarmey',
+          modelo_mototaxi: data.model || 'Mototaxi 150cc Rojo',
+          numero_licencia: data.license || 'S/N',
+          lat,
+          lng
+        }, { onConflict: 'telefono' })
+      } else {
+        await supabase.from('pasajeros').upsert({
+          nombre_completo: data.full_name,
+          numero_documento: data.dni || 'S/N',
+          telefono: data.phone,
+          zona_referencia: data.zone || 'Centro de Huarmey'
+        }, { onConflict: 'telefono' })
+      }
+
       const sessionData = {
         user: {
           id: data.id,
