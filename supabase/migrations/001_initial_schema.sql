@@ -91,21 +91,25 @@ CREATE TABLE IF NOT EXISTS public.trip_locations (
 ALTER PUBLICATION supabase_realtime ADD TABLE public.packages;
 
 -- ============================================================
--- 7. RLS: desactivado para permitir acceso desde el cliente anon
---    (necesario para funcionar en Vercel sin backend autenticado)
+-- 7. RLS Y POLÍTICAS DE SEGURIDAD (Security Advisor)
 -- ============================================================
-ALTER TABLE public.packages        DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.mototaxistas    DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.pasajeros       DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.packages         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mototaxistas     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pasajeros        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_credentials ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow all access to packages"         ON public.packages         FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access to mototaxistas"     ON public.mototaxistas     FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access to pasajeros"        ON public.pasajeros        FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all access to user_credentials" ON public.user_credentials FOR ALL USING (true) WITH CHECK (true);
 
 -- ============================================================
 -- 8. PERMISOS: otorgar acceso al rol anon (cliente Supabase JS)
 -- ============================================================
-GRANT SELECT, INSERT, UPDATE ON public.packages        TO anon;
-GRANT SELECT, INSERT, UPDATE ON public.packages        TO authenticated;
-GRANT SELECT                  ON public.mototaxistas   TO anon;
-GRANT SELECT                  ON public.pasajeros      TO anon;
-GRANT SELECT, INSERT          ON public.user_credentials TO anon;
+GRANT SELECT, INSERT, UPDATE ON public.packages          TO anon, authenticated;
+GRANT SELECT                  ON public.mototaxistas     TO anon, authenticated;
+GRANT SELECT                  ON public.pasajeros        TO anon, authenticated;
+GRANT SELECT, INSERT          ON public.user_credentials TO anon, authenticated;
 
 -- ============================================================
 -- 9. DATOS INICIALES: 2 mototaxistas verificados en Huarmey
