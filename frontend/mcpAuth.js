@@ -1,13 +1,22 @@
-// Se implementó el módulo MCP mcpAuth.js para autenticar contra la tabla public.user_credentials en Supabase
+// Módulo de autenticación MCP — Login por teléfono contra public.user_credentials en Supabase
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
-const SUPABASE_URL = (typeof process !== 'undefined' && process.env?.SUPABASE_URL) || 'https://bmvhvysluevomiijncqq.supabase.co'
-const SUPABASE_ANON_KEY = (typeof process !== 'undefined' && process.env?.SUPABASE_ANON_KEY) || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtdmh2eXNsdWV2b21paWpuY3FxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MDc2MzIsImV4cCI6MjEwMjM4MzYzMn0.hLtjoBA-rdimJeRU5_HY3gDDhywPf8NPpuPk2wCd6ew'
+const SUPABASE_URL = 'https://bmvhvysluevomiijncqq.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJtdmh2eXNsdWV2b21paWpuY3FxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MDc2MzIsImV4cCI6MjEwMjM4MzYzMn0.hLtjoBA-rdimJeRU5_HY3gDDhywPf8NPpuPk2wCd6ew'
 
 const API_BASE_URL = 'http://localhost:8000'
 
-// Se inicializó la instancia del cliente Supabase
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+// Cliente Supabase con Realtime habilitado explícitamente — necesario para sincronización multidispositivo en producción (Vercel)
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
+  },
+  global: {
+    headers: { 'apikey': SUPABASE_ANON_KEY }
+  }
+})
 
 // Se implementó la función auxiliar para limpiar y validar el número de teléfono de 9 dígitos
 function cleanPhone(phone) {

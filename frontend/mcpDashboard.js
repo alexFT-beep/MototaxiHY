@@ -194,42 +194,111 @@ export async function updatePackageStatus(packageId, status, location = null, dr
 
 // Suscripción Realtime a los cambios de una solicitud específica por ID.
 // Se usa para actualizar la tarjeta de seguimiento del pasajero cuando el conductor acepta el viaje.
+// Usa WebSocket de Supabase + polling de respaldo cada 5s para garantizar funcionamiento en Vercel.
 export function onPackageUpdate(packageId, callback) {
+  let lastStatus = null
+  let pollInterval = null
+
+  // Canal Realtime principal (WebSocket)
+  let channel = null
   try {
-    const channel = supabase
-      .channel(`package-changes-${packageId}`)
+    channel = supabase
+      .channel(`package-update-${packageId}`)
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'packages', filter: `id=eq.${packageId}` },
-        (payload) => callback(null, payload.new)
+        (payload) => {
+          lastStatus = payload.new?.status
+          callback(null, payload.new)
+        }
       )
-      .subscribe()
+      .subscribe((status) => {
+        // Si el WebSocket falla, activar polling como respaldo
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          startPolling()
+        }
+      })
+  } catch (_) {}
 
-    return () => {
-      try { supabase.removeChannel(channel) } catch (_) {}
-    }
-  } catch (_) {
-    return () => {}
+  // Polling de respaldo: consulta Supabase cada 5 segundos si el WebSocket no responde
+  function startPolling() {
+    if (pollInterval) return
+    pollInterval = setInterval(async () => {
+      const { data } = await supabase
+        .from('packages')
+        .select('*')
+        .eq('id', packageId)
+        .single()
+      if (data && data.status !== lastStatus) {
+        lastStatus = data.status
+        callback(null, data)
+      }
+    }, 5000)
+  }
+
+  // Siempre iniciar polling como respaldo adicional (garantía en producción)
+  startPolling()
+
+  return () => {
+    if (pollInterval) clearInterval(pollInterval)
+    try { supabase.removeChannel(channel) } catch (_) {}
   }
 }
 
 // Suscripción Realtime global a todos los cambios en la tabla packages.
-// Se usa en el panel del mototaxista para recibir nuevas solicitudes en tiempo real sin recargar la página.
+// Se usa en el panel del mototaxista para recibir nuevas solicitudes sin recargar la página.
+// Dual: WebSocket Supabase + polling cada 5s como respaldo en producción (Vercel).
 export function subscribeToAllPackageRequests(callback) {
+  let pollInterval = null
+  let lastCount = null
+  let lastUpdatedAt = null
+
+  // Canal Realtime principal (WebSocket)
+  let channel = null
   try {
-    const channel = supabase
-      .channel('global-package-requests-realtime')
+    channel = supabase
+      .channel('global-packages-sync')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'packages' },
-        (payload) => callback(null, payload)
+        (payload) => {
+          callback(null, payload)
+        }
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          startPolling()
+        }
+      })
+  } catch (_) {}
 
-    return () => {
-      try { supabase.removeChannel(channel) } catch (_) {}
-    }
-  } catch (_) {
-    return () => {}
+  // Polling de respaldo cada 5 segundos — detecta nuevas solicitudes aunque el WebSocket falle
+  function startPolling() {
+    if (pollInterval) return
+    pollInterval = setInterval(async () => {
+      const { data } = await supabase
+        .from('packages')
+        .select('id, updated_at, status')
+        .in('status', ['Buscando Mototaxi', 'Solicitado', 'Pendiente', 'Asignado'])
+        .order('updated_at', { ascending: false })
+        .limit(1)
+
+      if (data && data.length > 0) {
+        const newest = data[0]
+        if (newest.updated_at !== lastUpdatedAt) {
+          lastUpdatedAt = newest.updated_at
+          callback(null, { new: newest })
+        }
+      }
+    }, 5000)
+  }
+
+  // Siempre iniciar polling como garantía adicional en producción
+  startPolling()
+
+  return () => {
+    if (pollInterval) clearInterval(pollInterval)
+    try { supabase.removeChannel(channel) } catch (_) {}
   }
 }
+
